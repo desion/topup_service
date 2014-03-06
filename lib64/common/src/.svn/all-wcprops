@@ -1,0 +1,113 @@
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/minisearch/!svn/ver/4961/newsearch/branches/1.4.0/ac_module/lib64/common/src
+END
+profile.c
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/minisearch/!svn/ver/4961/newsearch/branches/1.4.0/ac_module/lib64/common/src/profile.c
+END
+slog.c
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/minisearch/!svn/ver/4961/newsearch/branches/1.4.0/ac_module/lib64/common/src/slog.c
+END
+searchfile.c
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/minisearch/!svn/ver/4961/newsearch/branches/1.4.0/ac_module/lib64/common/src/searchfile.c
+END
+CRC.c
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/minisearch/!svn/ver/4961/newsearch/branches/1.4.0/ac_module/lib64/common/src/CRC.c
+END
+dllcall.c
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/minisearch/!svn/ver/4961/newsearch/branches/1.4.0/ac_module/lib64/common/src/dllcall.c
+END
+thread.c
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/minisearch/!svn/ver/4961/newsearch/branches/1.4.0/ac_module/lib64/common/src/thread.c
+END
+selog.c
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/minisearch/!svn/ver/4961/newsearch/branches/1.4.0/ac_module/lib64/common/src/selog.c
+END
+urlformat.c
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/minisearch/!svn/ver/4961/newsearch/branches/1.4.0/ac_module/lib64/common/src/urlformat.c
+END
+CGIParser.c
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/minisearch/!svn/ver/4961/newsearch/branches/1.4.0/ac_module/lib64/common/src/CGIParser.c
+END
+ul_file.c
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/minisearch/!svn/ver/4961/newsearch/branches/1.4.0/ac_module/lib64/common/src/ul_file.c
+END
+termid.c
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/minisearch/!svn/ver/4961/newsearch/branches/1.4.0/ac_module/lib64/common/src/termid.c
+END
+conf.c
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/minisearch/!svn/ver/4961/newsearch/branches/1.4.0/ac_module/lib64/common/src/conf.c
+END
+ul_conf.c
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/minisearch/!svn/ver/4961/newsearch/branches/1.4.0/ac_module/lib64/common/src/ul_conf.c
+END
+phrasehash.c
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/minisearch/!svn/ver/4961/newsearch/branches/1.4.0/ac_module/lib64/common/src/phrasehash.c
+END
+common.c
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/minisearch/!svn/ver/4961/newsearch/branches/1.4.0/ac_module/lib64/common/src/common.c
+END
+mkdirs.c
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/minisearch/!svn/ver/4961/newsearch/branches/1.4.0/ac_module/lib64/common/src/mkdirs.c
+END
+ul_func.c
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/minisearch/!svn/ver/4961/newsearch/branches/1.4.0/ac_module/lib64/common/src/ul_func.c
+END
+Makefile
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/minisearch/!svn/ver/4961/newsearch/branches/1.4.0/ac_module/lib64/common/src/Makefile
+END

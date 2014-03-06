@@ -1,0 +1,9 @@
+#解决time_wait过多的问题
+net.ipv4.tcp_syncookies = 1
+net.ipv4.tcp_tw_reuse = 1
+net.ipv4.tcp_tw_recycle = 1
+net.ipv4.tcp_fin_timeout = 30
+
+#解决time_wait过多的问题
+使用NoneBlockingServer 代替 ThreadPoolServer
+使用TFramedTransport 代替TBufferedTransport

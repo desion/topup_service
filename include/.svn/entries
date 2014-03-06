@@ -1,0 +1,52 @@
+10
+
+dir
+2
+svn://127.0.0.1/project/occi/include
+svn://127.0.0.1/project
+
+
+
+2014-01-28T11:12:57.956656Z
+2
+desion
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+eadea7cb-7678-44b1-b6cf-31517a93c2fa
+
+fastcgi
+dir
+
+thrift
+dir
+
+curl
+dir
+
+cgicc
+dir
+
+glog
+dir
+
+iniparser
+dir
+
+jsoncpp
+dir
+
+occi
+dir
+
