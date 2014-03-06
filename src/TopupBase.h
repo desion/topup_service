@@ -24,6 +24,7 @@ class TopupBase{
 		virtual int Init(Connection *conn) = 0;
 };
 
+
 typedef TopupBase* (*create_t)();
 typedef void (*destroy_t)(TopupBase*);
 
