@@ -30,8 +30,8 @@ void TopupService::SendRequest(std::string& _return,const TopupRequest& request)
 			return;
 		}
 		tpInfo->conn = conn;
-		topupBase->Init(conn);
-		topupBase->HandleRequest(tpInfo, request, _return);
+		topupBase->Init(tpInfo);
+		topupBase->HandleRequest(request, _return);
 		connManager->Recover(conn);
 	}else{
 		slog_write(LL_FATAL, "create topup so instance failed!");

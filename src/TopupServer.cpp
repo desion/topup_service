@@ -227,12 +227,14 @@ int TopupServer::Serve(int argc, char ** argv){
 	return 0;
 }
 
-int TopupServer::CallLog(){
-	if(log_len > 0 && log_len < MAX_LOG_LEN){
-		log[log_len] = '\0';
-		seLogEx(service_log, "%s", log);
-		log_len = 0;
-		return log_len;
+int TopupServer::CallLog(TopupInfo* topupInfo){
+	if(topupInfo->log_len > 0 && topupInfo->log_len < MAX_LOG_LEN){
+		topupInfo->log[topupInfo->log_len] = '\0';
+		seLogEx(service_log, "%s", topupInfo->log);
+	}
+	if(topupInfo->err_log_len > 0 && topupInfo->err_log_len < MAX_LOG_LEN){
+		topupInfo->err_log[topupInfo->err_log_len] = '\0';
+		seErrLogEx(service_log, "%s", topupInfo->err_log);
 	}
 	return 0;
 }

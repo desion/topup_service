@@ -44,7 +44,7 @@ class TopupServer{
 		
 		virtual int Serve(int argc, char ** argv);
 
-		virtual int CallLog(); 
+		virtual int CallLog(TopupInfo* topup_info); 
 
 		virtual void SetSeqId(uint32_t *seq_id);
 

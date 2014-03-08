@@ -22,8 +22,8 @@ struct TopupInfo;
 class TopupBase{
 	public:
 		virtual ~TopupBase(){};
-		virtual int HandleRequest(TopupInfo* topupInfo, const TopupRequest& request, string& result) = 0;
-		virtual int Init(Connection *conn) = 0;
+		virtual int HandleRequest(const TopupRequest& request, string& result) = 0;
+		virtual int Init(TopupInfo* m_topup_info) = 0;
 };
 
 

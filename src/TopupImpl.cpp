@@ -19,7 +19,7 @@ TopupImpl::TopupImpl(){
 TopupImpl::~TopupImpl(){
 	//delete m_topup_info;
 	//日志记录落地
-	P_TPServer->CallLog();
+	P_TPServer->CallLog(m_topup_info);
 }
 
 /**最优渠道选择函数**/
@@ -28,9 +28,10 @@ bool ChannelRank(ChannelInfo channelA, ChannelInfo channelB){
 }
 
 /**初始化连接**/
-int TopupImpl::Init(Connection *conn)
+int TopupImpl::Init(TopupInfo* topup_info)
 {
-	m_conn = conn;
+	m_topup_info = topup_info;
+	m_conn = topup_info->conn;
 	return 0;
 }
 
@@ -41,8 +42,8 @@ int TopupImpl::Init(Connection *conn)
 #define SIGN_NOMATCH_ERR	"0102"
 
 //处理FCGI的请求，根据请求的URI判断如何处理
-int TopupImpl::HandleRequest(TopupInfo* topupInfo ,const TopupRequest& request, string &result){
-	TP_WRITE_LOG(topupInfo, "[%s]\t%s\t%s\t%d", request.uri.c_str()
+int TopupImpl::HandleRequest(const TopupRequest& request, string &result){
+	TP_WRITE_LOG(m_topup_info, "[%s]\t%s\t%s\t%d", request.uri.c_str()
 			,request.query.c_str(), request.checksum.c_str(), request.itimestamp);
 	const char *params = request.query.c_str();
 	const char *uri = request.uri.c_str();
@@ -54,7 +55,7 @@ int TopupImpl::HandleRequest(TopupInfo* topupInfo ,const TopupRequest& request, 
 	//解析post参数
 	parse_params(params, &map_entitys);
 	//解析query参数，并封装结构
-	parse_query(params, topupInfo);
+	parse_query(params, m_topup_info);
 	if(uri != NULL){
 		m_interface = strrchr(uri, '/');
 		if(m_interface == NULL){
@@ -62,10 +63,10 @@ int TopupImpl::HandleRequest(TopupInfo* topupInfo ,const TopupRequest& request, 
 		}
 	}
 	//根据调用的URI参数判断调用的相应接口
-	TP_WRITE_LOG(topupInfo, "\t{%s}", m_interface);
+	TP_WRITE_LOG(m_topup_info, "\t{%s}", m_interface);
 	if(strcmp(m_interface + 1, "topup.fcg") == 0){
 		//调用充值接口
-		TmallCharge(topupInfo, result);
+		TmallCharge(result);
 	}else if(strcmp(m_interface, "query") == 0){
 		//调用查询订单查询接口
 	}else if(strcmp(m_interface, "cancel") == 0){
@@ -83,7 +84,7 @@ int TopupImpl::HandleRequest(TopupInfo* topupInfo ,const TopupRequest& request, 
 }
 
 ///充值接口用于天猫和下游订购用户
-int TopupImpl::TmallCharge(TopupInfo* m_topup_info, string &response){
+int TopupImpl::TmallCharge(string &response){
 	//TODO 验证参数的正确性
 	//http://host:port/resource?coopId=xxx&tbOrderNo=xxx&cardId=xxx&cardNum=xxx&customer=xxx&sum=xxx&gameId=xxx&section1=xxx&section2=xxx&notifyUrl=xxx&sign=xxx&version=xxx
 	
@@ -100,76 +101,76 @@ int TopupImpl::TmallCharge(TopupInfo* m_topup_info, string &response){
 	string version;			//版本
 
 	if(m_topup_info->qs_info.coopId.empty()){
-		MakeErrReplay(m_topup_info, LAKE_PARAM_ERR, SORDER_FAILED, response);
+		MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
 		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) NO coopId %s", LAKE_PARAM_ERR);
 		return 1;
 	}
 	if(m_topup_info->qs_info.tbOrderNo.empty()){
-		MakeErrReplay(m_topup_info, LAKE_PARAM_ERR, SORDER_FAILED, response);
+		MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
 		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) NO tbOrderNo %s", LAKE_PARAM_ERR);
 		return 1;
 	}
 	if(m_topup_info->qs_info.cardId.empty()){
-		MakeErrReplay(m_topup_info, LAKE_PARAM_ERR, SORDER_FAILED, response);
+		MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
 		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) NO cardId %s", LAKE_PARAM_ERR);
 		return 1;
 	}
 	if(m_topup_info->qs_info.cardNum == 0){
-		MakeErrReplay(m_topup_info, LAKE_PARAM_ERR, SORDER_FAILED, response);
+		MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
 		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) NO cardNum %s", LAKE_PARAM_ERR);
 		return 1;
 	}
 	if(m_topup_info->qs_info.customer.empty()){
-		MakeErrReplay(m_topup_info, LAKE_PARAM_ERR, SORDER_FAILED, response);
+		MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
 		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) NO customer %s", LAKE_PARAM_ERR);
 		return 1;
 	}
 	if(m_topup_info->qs_info.sum == 0.){
-		MakeErrReplay(m_topup_info, LAKE_PARAM_ERR, SORDER_FAILED, response);
+		MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
 		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) NO sum %s", LAKE_PARAM_ERR);
 		return 1;
 	}
 	if(m_topup_info->qs_info.tbOrderSnap.empty()){
-		MakeErrReplay(m_topup_info, LAKE_PARAM_ERR, SORDER_FAILED, response);
+		MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
 		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) NO tbOrderSnap %s", LAKE_PARAM_ERR);
 		return 1;
 	}
 	if(m_topup_info->qs_info.sign.empty()){
-		MakeErrReplay(m_topup_info, LAKE_PARAM_ERR, SORDER_FAILED, response);
+		MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
 		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) NO sign %s", LAKE_PARAM_ERR);
 		return 1;
 	}
 
 	if(!CheckSign()){
-		MakeErrReplay(m_topup_info, SIGN_NOMATCH_ERR, SORDER_FAILED, response);
+		MakeErrReplay(SIGN_NOMATCH_ERR, SORDER_FAILED, response);
 		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) sign error %s", SIGN_NOMATCH_ERR);
 		return 4;
 	}
 	//TODO 选择正确的产品，所有产品信息加入缓存，商品更新发送通知，重新加载缓存
-	int check_product = CheckProduct(m_topup_info);
+	int check_product = CheckProduct();
 	if(check_product == 2){
-		MakeErrReplay(m_topup_info, NO_PRODUCT_ERR, SORDER_FAILED, response);
+		MakeErrReplay(NO_PRODUCT_ERR, SORDER_FAILED, response);
 		return 2;
 	}else if(check_product == 1){
-		MakeErrReplay(m_topup_info, PRODUCT_MAIN_ERR, SORDER_FAILED, response);
+		MakeErrReplay(PRODUCT_MAIN_ERR, SORDER_FAILED, response);
 		return 3;
 	}
 	//TODO 选择最优的渠道，渠道信息同样加入缓存，信息更新，重新加载
-	int selectChannel = SelectBestChannel(m_topup_info);
+	int selectChannel = SelectBestChannel();
 	if(selectChannel <= 0){
-		MakeErrReplay(m_topup_info, PRODUCT_MAIN_ERR, SORDER_FAILED, response);
+		MakeErrReplay(PRODUCT_MAIN_ERR, SORDER_FAILED, response);
 		return 3;
 	}
 	//TODO 建立订单，订单创建采用append模式，快速，采用按天分表模式，保留一个月的数据
-	int create_status = CreateTmallOrder(m_topup_info);
+	int create_status = CreateTmallOrder();
 	//TODO 返回结果
-	MakeSuccessReplay(m_topup_info, SUNDERWAY, response);
+	MakeSuccessReplay(SUNDERWAY, response);
 	return 0;
 }
 
 
 ///天猫查询接口，用于查询订单
-int TopupImpl::TmallQuery(TopupInfo* topupInfo, string &response){
+int TopupImpl::TmallQuery(string &response){
 	//验证参数的正确性
 	map<string, string>::iterator it;
 	string coopId;			//商家编号
@@ -181,14 +182,14 @@ int TopupImpl::TmallQuery(TopupInfo* topupInfo, string &response){
 }
 
 //天猫回调接口，向TMALL发送回调请求，接口需要tmall和下游用户实现，该方法只发送回调请求
-int TopupImpl::TmallNotify(TopupInfo* topupInfo, string &response){
+int TopupImpl::TmallNotify(string &response){
 	//向天猫或下游订购用户发送回调请求
 	//验证返回结果，并且实现重发策略
 	return 0;
 }
 
 ///只用于接收处理天猫的取消请求
-int TopupImpl::TmallCancel(TopupInfo* topupInfo, string &response){
+int TopupImpl::TmallCancel(string &response){
 	map<string, string>::iterator it;
 	string coopId;			//商家编号
 	string tbOrderNo;		//淘宝的订单号
@@ -205,7 +206,7 @@ int TopupImpl::GetBalance(string &response){
 
 
 //返回错误信息
-int TopupImpl::MakeErrReplay(TopupInfo *m_topup_info, const char* errCode,const char* status, string &result){
+int TopupImpl::MakeErrReplay(const char* errCode,const char* status, string &result){
 	char buf[2048] = {0};
 	int len = 0;
 	len += sprintf(buf, "<?xml version=\"1.0\" encoding=\"utf-8\"?>");
@@ -221,7 +222,7 @@ int TopupImpl::MakeErrReplay(TopupInfo *m_topup_info, const char* errCode,const 
 	return len;
 }
 //返回正确的信息
-int TopupImpl::MakeSuccessReplay(TopupInfo *m_topup_info, const char* status, string &result){
+int TopupImpl::MakeSuccessReplay(const char* status, string &result){
 	char buf[2048] = {0};
 	int len = 0;
 	len += sprintf(buf, "<?xml version=\"1.0\" encoding=\"utf-8\"?>");
@@ -236,7 +237,7 @@ int TopupImpl::MakeSuccessReplay(TopupInfo *m_topup_info, const char* status, st
 	return len;
 }
 
-int TopupImpl::CheckProduct(TopupInfo *m_topup_info){
+int TopupImpl::CheckProduct(){
 	printf("CheckProduct.....\n");
 
 	ChargeBusiness *chargeBusiness = new ChargeBusiness();
@@ -252,7 +253,7 @@ int TopupImpl::CheckProduct(TopupInfo *m_topup_info){
 	return ret;
 }
 
-int TopupImpl::SelectBestChannel(TopupInfo *m_topup_info){
+int TopupImpl::SelectBestChannel(){
 	printf("SelectBestChannel.....\n");
 	ChargeBusiness *chargeBusiness = new ChargeBusiness();
 	chargeBusiness->Init(m_conn);
@@ -273,7 +274,7 @@ int TopupImpl::SelectBestChannel(TopupInfo *m_topup_info){
 	return 0;
 }
 
-int TopupImpl::CreateTmallOrder(TopupInfo *m_topup_info){
+int TopupImpl::CreateTmallOrder(){
 	printf("CreateTmallOrder.....\n");
 	ChargeBusiness *chargeBusiness = new ChargeBusiness();
 	chargeBusiness->Init(m_conn);
