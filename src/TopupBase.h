@@ -10,17 +10,19 @@
 #include <iostream>
 #include "TopupInterface_types.h"
 #include "occi.h"
+#include "TopupUtils.h"
 
 using namespace std;
 using namespace  ::topupinterface;  
 using namespace oracle::occi;
 
-class TopupServer;
+//class TopupServer;
+struct TopupInfo;
 
 class TopupBase{
 	public:
 		virtual ~TopupBase(){};
-		virtual int HandleRequest(TopupServer *tpServer ,const TopupRequest& request, string& result) = 0;
+		virtual int HandleRequest(TopupInfo* topupInfo, const TopupRequest& request, string& result) = 0;
 		virtual int Init(Connection *conn) = 0;
 };
 

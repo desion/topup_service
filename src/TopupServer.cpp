@@ -25,6 +25,7 @@
 #include "BaseBusiness.h"
 #include "glog/logging.h"
 #include "TopupServer.h"
+#include "TopupUtils.h"
 
 using namespace std;
 using namespace ::apache::thrift;
@@ -46,7 +47,6 @@ enum ESysStatus{
 };
 
 GlobalConfig* gconf = NULL;			//全局配置
-//extern TopupServer *P_TPServer;	//充值服务实例
 TopupServer *P_TPServer = NULL;		//充值服务实例
 //LOG_HANDLE	service_log;			//日志文件句柄
 int isDaemon = 0;
@@ -141,10 +141,18 @@ int TopupServer::InitLog()
 	   }
     }
 	//业务日志初始化
-	if(seLogInit(&service_log, logPath, gconf->p_tplog_prefix, SLO_SWITCH_BY_DAY | SLO_SWITCH_BY_SIZE, NULL, 1024, 0)){       
+	if(seLogInit(&service_log, logPath, logName, SLO_SWITCH_BY_DAY | SLO_SWITCH_BY_SIZE, NULL, 1024, 0)){       
 		return 1;
 	}
 	return 0;
+}
+
+/**设置系统请求ID**/
+void TopupServer::SetSeqId(uint32_t *seq){
+	pthread_mutex_lock(&seq_lock);
+	seq_id++;
+	*seq = seq_id;
+	pthread_mutex_unlock(&seq_lock);
 }
 
 //全局初始化
@@ -210,10 +218,10 @@ int TopupServer::Serve(int argc, char ** argv){
 	if(ParseParam(argc, argv) != 0){
 		return -1;
 	}
-	//初始化全局配置
-	GlobalInit();
 	//初始化系统日志
 	InitLog();
+	//初始化全局配置
+	GlobalInit();
 	//启动thrift服务
 	TPServe();
 	return 0;

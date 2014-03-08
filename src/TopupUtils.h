@@ -12,8 +12,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/time.h>
 #include "dllcall.h"
 #include "TopupBase.h"
+#include "slog.h"
+#include "selog.h"
 
 #define MAX_LOG_LEN  1024
 
@@ -21,6 +24,12 @@
 #define TP_WRITE_LOG(info, fmt, ...) { \
 	if(info->log_len < MAX_LOG_LEN){\
 	    info->log_len += snprintf(info->log + info->log_len, MAX_LOG_LEN - info->log_len, fmt, ##__VA_ARGS__);\
+	}\
+}
+
+#define TP_WRITE_ERR(info, fmt, ...) { \
+	if(info->err_log_len < MAX_LOG_LEN){\
+	    info->err_log_len += snprintf(info->err_log + info->err_log_len, MAX_LOG_LEN - info->err_log_len, fmt, ##__VA_ARGS__);\
 	}\
 }
 
@@ -43,6 +52,8 @@
 		return false;\
 	}\
 }
+
+
 typedef struct ChannelInfo{
 	int channelId;			//渠道ID
 	string channelName;		//渠道名称
@@ -53,7 +64,7 @@ typedef struct ChannelInfo{
 	int repeat;				//重试次数
 } ChannelInfo;
 
-struct TopupInfo{
+typedef struct QsInfo{
 	string coopId;          //商家编号
     string tbOrderNo;       //淘宝的订单号
 	uint64_t coopOrderNo;	//系统生成订单号
@@ -69,12 +80,36 @@ struct TopupInfo{
 	int value;				//面值
 	int op;					//运营商
 	int province;			//省份
-};
+}QsInfo;
 
-enum TimeStyle{
-	YMDHMS,
-	YMDHMS_WITH_SEP
-};
+typedef struct TopupInfo{
+	/*
+	string coopId;          //商家编号
+    string tbOrderNo;       //淘宝的订单号
+	uint64_t coopOrderNo;	//系统生成订单号
+    string cardId;          //充值卡商品编号
+    int cardNum;            //充值卡数量
+    string customer;        //手机号码
+    double sum;             //本次充值总金额
+    string tbOrderSnap;     //商品信息快照
+    string notifyUrl;       //异同通知地址
+    string sign;            //签名字符串
+    string version;         //版本
+	double price;			//单价
+	int value;				//面值
+	int op;					//运营商
+	int province;			//省份
+	*/
+	QsInfo qs_info;						//请求参数相关
+	vector<ChannelInfo> channels;		//最优渠道
+	Connection *conn;					//数据库连接
+	char log[MAX_LOG_LEN];				//业务日志缓冲区
+	char err_log[MAX_LOG_LEN];			//错误日志缓冲区
+	int log_len;						//缓冲区位置标记
+	int err_log_len;					//缓冲区位置标记
+	uint32_t seqid;						//请求序列标记
+	struct timeval start_time;			//开始处理时间
+}TopupInfo;
 
 
 //动态库重加载指令
@@ -147,5 +182,9 @@ extern uint64_t encode_orderno(string phoneNo);
 extern void decode_orderno(const uint64_t orderno, uint64_t *phoneno, uint32_t *ttime);
 
 extern int get_time_now(const char* format, string &time_str);
+
+extern int calc_time_span(struct timeval *start_time);
+
+extern void write_err_msg(TopupInfo *topupInfo, vector<string>& errors);
 
 #endif  //__TOPUP_UTILS_H

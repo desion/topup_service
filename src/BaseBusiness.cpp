@@ -12,8 +12,7 @@
 using namespace std;
 
 void BaseBusiness::HandleException(std::exception &e){
-	errors.push_back("Exception");
-	LOG(ERROR) << e.what();
+	errors.push_back(string("Exception:") + e.what());
 }
 
 void BaseBusiness::Finish(){
@@ -26,10 +25,8 @@ void BaseBusiness::Finish(){
 			}
 		}
 	}catch(SQLException &sqlExcp){
-		TP_WRITE_LOG(P_TPServer, "\t{%s}", sqlExcp.getMessage().c_str());
-	    //LOG(ERROR) << sqlExcp.getMessage();
+		slog_write(LL_FATAL, "%s", sqlExcp.getMessage().c_str());
 	}
-	TP_WRITE_LOG(P_TPServer, "\t{FINISH}");
 	/*
 	if(conn != NULL){
 		P_TPServer->conn_manager->Recover(conn);
@@ -39,4 +36,12 @@ void BaseBusiness::Finish(){
 
 void BaseBusiness::Init(Connection *m_conn){
 	conn = m_conn;
+}
+
+bool BaseBusiness::HasError(){
+	return !errors.empty();
+}
+
+vector<string> & BaseBusiness::GetErrors(){
+	return errors;
 }

@@ -100,3 +100,16 @@ int get_time_now(const char* format, string &time_str){
 	time_str = buf;
 	return ret;
 }
+
+int calc_time_span(struct timeval *start_time){                                                                                                                                                         
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    return (now.tv_sec - start_time->tv_sec) * 1000000 + (now.tv_usec - start_time->tv_usec);
+}
+
+void write_err_msg(TopupInfo *topupInfo, vector<string>& errors){
+    vector<string>::iterator it = errors.begin();
+	for(;it != errors.end();++it){	
+		TP_WRITE_ERR(topupInfo, "seqid:%d\t(SelectBestChannel)\t%s", topupInfo->seqid, it->c_str());
+	}
+}

@@ -31,54 +31,49 @@ class TopupImpl: public TopupBase{
 		TopupImpl();
 		~TopupImpl();
 		//对外接口，统一处理FCGI请求
-		int HandleRequest(TopupServer *tpServer,const TopupRequest& request, string& result);
+		int HandleRequest(TopupInfo* topupInfo,const TopupRequest& request, string& result);
 
+		//连接由主程序分配回收
 		int Init(Connection *dbconn);
 	
 	//上行接口
 	protected:
 		//针对各个接口的处理函数
 		//天猫充值接口
-		int TmallCharge(TopupServer *tpServer, string &response); 
+		int TmallCharge(TopupInfo* topupInfo, string &response); 
 		//天猫查询接口
-		int TmallQuery(TopupServer *tpServer, string &response);
+		int TmallQuery(TopupInfo* topupInfo, string &response);
 		//天猫回调接口，向TMALL发送回调请求
-		int TmallNotify(TopupServer *tpServer, string &response);
+		int TmallNotify(TopupInfo* topupInfo, string &response);
 		//天猫取消接口
-		int TmallCancel(TopupServer *tpServer, string &response);
+		int TmallCancel(TopupInfo* topupInfo, string &response);
 		//查询余额接口，第三方订购商使用
 		int GetBalance(string &response);
 	
 	protected:
 		//返回错误信息
-		int MakeErrReplay(const char* errCode,const char* status, string &result);
+		int MakeErrReplay(TopupInfo *m_topup_info, const char* errCode,const char* status, string &result);
 		//返回成功信息
-		int MakeSuccessReplay(const char* status, string &result);
-		//回填处理结果
-		//@params		提交的post参数
-		//@req_type		请求接口类型
-		//@errno		错误信息index
-		//@result		返回的xml信息
-		int FillXMLResult(map<string, string> &params, RequestType req_type, int errno, string &result);
+		int MakeSuccessReplay(TopupInfo *m_topup_info, const char* status, string &result);
 		//验证商品信息的正确性
 		//包括产品id是否存在，是否有库存，是否下架
 		//验证价格是否正确，是否是手机对应省市产品等
 		//正确返回0，其他有问题
-		int CheckProduct();
+		int CheckProduct(TopupInfo *m_topup_info);
 		//为对应的产品选择最优的渠道
 		//包括充值速度，成功率，对应省市，价格信息，库存信息，优先级等
 		//返回对应的渠道信息
-		int SelectBestChannel();
+		int SelectBestChannel(TopupInfo *m_topup_info);
 
-		int CreateTmallOrder();
+		int CreateTmallOrder(TopupInfo *m_topup_info);
 		//向上游代理商发送充值请求，并取得返回的xml信息
-		int SendRequest(TopupInfo& topupInfo, string &reponse);
+		int SendRequest(TopupInfo* topupInfo, string &reponse);
 
 		bool CheckSign();
 
 
 	private:
-		TopupInfo *m_topup_info;		//充值使用的信息
+		//TopupInfo *m_topup_info;		//充值使用的信息
 		vector<ChannelInfo> m_channels;
 		int m_channel_index;
 		map<string, string, cmpKeyAscii> map_entitys;
