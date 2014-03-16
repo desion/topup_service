@@ -53,6 +53,7 @@
 	}\
 }
 
+enum OrderStatus{CREATE = 0, UNDERWAY, SUCESS, FAIL};
 
 typedef struct ChannelInfo{
 	int channelId;			//渠道ID
@@ -67,7 +68,7 @@ typedef struct ChannelInfo{
 typedef struct QsInfo{
 	string coopId;          //商家编号
     string tbOrderNo;       //淘宝的订单号
-	uint64_t coopOrderNo;	//系统生成订单号
+	string coopOrderNo;		//系统生成订单号
     string cardId;          //充值卡商品编号
     int cardNum;            //充值卡数量
     string customer;        //手机号码
@@ -76,6 +77,7 @@ typedef struct QsInfo{
     string notifyUrl;       //异同通知地址
     string sign;            //签名字符串
     string version;         //版本
+	string coopOrderStatus;	//notify状态
 	double price;			//单价
 	int value;				//面值
 	int op;					//运营商
@@ -109,6 +111,8 @@ typedef struct TopupInfo{
 	int err_log_len;					//缓冲区位置标记
 	uint32_t seqid;						//请求序列标记
 	struct timeval start_time;			//开始处理时间
+	OrderStatus status;
+	string update_time;
 }TopupInfo;
 
 
@@ -123,6 +127,8 @@ typedef struct TopupInfo{
 //dump缓存数据指令
 #define DUMP_CACHE_CMD		104
 
+
+//XML response状态
 #define SSUCCESS		"<coopOrderStatus>SUCCESS</coopOrderStatus>"
 #define SUNDERWAY		"<coopOrderStatus>UNDERWAY</coopOrderStatus>"
 #define SORDER_FAILED 	"<coopOrderStatus>ORDER_FAILED</coopOrderStatus>"
@@ -187,4 +193,7 @@ extern int calc_time_span(struct timeval *start_time);
 
 extern void write_err_msg(TopupInfo *topupInfo, vector<string>& errors);
 
+extern int get_strtime(const uint32_t ts, const char* format, string &time_str);
+
+extern void trans_time(string &from, string &to);
 #endif  //__TOPUP_UTILS_H

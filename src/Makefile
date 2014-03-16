@@ -21,14 +21,24 @@ THRIFT_OBJS = $(INTERFACE_DIR)/Topup.o \
 UTILS_OBJS = HttpClient.o
 
 TOPUP_OBJS = TopupImpl.o \
-			 HttpClient.o \
 			 TopupUtils.o \
+			 HttpClient.o \
 			 $(INTERFACE_DIR)/TopupInterface_types.o \
 			 ChannelSLS.o \
 			 ChargeBusiness.o \
 			 BaseBusiness.o 
 
-TOPUP_SO = topup.so
+CUSTOMER_OBJS = TopupCustomer.o \
+			 TopupUtils.o \
+			 HttpClient.o \
+			 $(INTERFACE_DIR)/TopupInterface_types.o \
+			 ChannelSLS.o \
+			 ChargeBusiness.o \
+			 BaseBusiness.o 
+
+TOPUP_SO = topup.so 
+CUSTOMER_SO = customer.so
+
 
 
 CXXFLAG = -g -Wall 
@@ -47,7 +57,7 @@ LIBS = -L../lib \
 
 TEST = test_httpclient
 
-all: oracle_client topup_server topup.fcg $(TEST) $(TOPUP_SO)
+all: oracle_client topup_server topup.fcg $(TEST) $(TOPUP_SO) $(CUSTOMER_SO)
 
 
 .cpp.o:
@@ -58,6 +68,9 @@ oracle_client: oracle.o
 	$(CXX) $(CPPFLAG) $(INCS) $(LIBS) -Wl,--rpath -Wl,/data/occi/lib  -locci  -lclntsh -lnnz11 -lglog -lpthread -o $@  $<
 
 $(TOPUP_SO): $(TOPUP_OBJS)
+	$(CXX) -g -fPIC -shared  -o $@ $^
+
+$(CUSTOMER_SO): $(CUSTOMER_OBJS)
 	$(CXX) -g -fPIC -shared  -o $@ $^
 
 topup_server: $(OBJS) TopupServer.o

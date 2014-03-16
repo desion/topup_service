@@ -23,12 +23,15 @@ bool GlobalConfig::Init(const char* confPath){
 	dictionary* ini_dict;
 	ini_dict = iniparser_load(confPath);
 	assert(ini_dict != NULL);
+	
 	char *db_userName = iniparser_getstring(ini_dict, "DATABASE:USER_NAME",NULL);
 	CHECKNULL(db_userName, "DATABASE:USER_NAME IS NULL");
 	s_db_userName = db_userName;
+	
 	char *db_passWord = iniparser_getstring(ini_dict, "DATABASE:PASS_WORD",NULL);
 	CHECKNULL(db_passWord, "DATABASE:PASS_WORD IS NULL");
 	s_db_passWord = db_passWord;
+
 	char *db_connString = iniparser_getstring(ini_dict, "DATABASE:CONN_STRING",NULL);
 	CHECKNULL(db_connString, "DATABASE:CONN_STRING IS NULL");
 	s_db_connString = db_connString;
@@ -36,11 +39,18 @@ bool GlobalConfig::Init(const char* confPath){
 	p_tplog_prefix = iniparser_getstring(ini_dict, "COMMON:TPLOG_PREFIX",NULL);
 	CHECKNULL(p_tplog_prefix, "COMMON:TPLOG_PREFIX IS NULL");
 	
-	p_so_path = iniparser_getstring(ini_dict, "COMMON:TOPUP_SO",NULL);
-	CHECKNULL(p_so_path, "COMMON:TOPUP_SO IS NULL");
+	p_tmall_path = iniparser_getstring(ini_dict, "COMMON:TMALL_SO",NULL);
+	CHECKNULL(p_tmall_path, "COMMON:TMALL_SO IS NULL");
+	
+	p_customer_path = iniparser_getstring(ini_dict, "COMMON:CUSTOMER_SO",NULL);
+	CHECKNULL(p_customer_path, "COMMON:CHANNEL_SO IS NULL");
+	
+	p_channel_path = iniparser_getstring(ini_dict, "COMMON:CHANNEL_SO",NULL);
+	CHECKNULL(p_channel_path, "COMMON:CHANNEL_SO IS NULL");
 	
 	char *p_error_path = iniparser_getstring(ini_dict, "COMMON:ERRORS",NULL);
 	CHECKNULL(p_error_path, "COMMON:ERRORS IS NULL");
+	
 	FILE *fp = fopen(p_error_path, "r");
 	if(fp == NULL){
 		return false;

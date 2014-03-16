@@ -1,0 +1,162 @@
+
+
+***********************************************************************
+Fatal NI connect error 12514, connecting to:
+ (DESCRIPTION=(CONNECT_DATA=(SERVICE_NAME=zkcl)(CID=(PROGRAM=topup_server)(HOST=i-31nn5uml)(USER=root)))(ADDRESS=(PROTOCOL=TCP)(HOST=10.50.33.149)(PORT=1521)))
+
+  VERSION INFORMATION:
+	TNS for Linux: Version 11.2.0.1.0 - Production
+	TCP/IP NT Protocol Adapter for Linux: Version 11.2.0.1.0 - Production
+  Time: 09-MAR-2014 12:37:18
+  Tracing not turned on.
+  Tns error struct:
+    ns main err code: 12564
+    TNS-12564: TNS:connection refused
+    ns secondary err code: 0
+    nt main err code: 0
+    nt secondary err code: 0
+    nt OS err code: 0
+
+
+***********************************************************************
+Fatal NI connect error 12514, connecting to:
+ (DESCRIPTION=(CONNECT_DATA=(SERVICE_NAME=zkcl)(CID=(PROGRAM=topup_server)(HOST=i-31nn5uml)(USER=root)))(ADDRESS=(PROTOCOL=TCP)(HOST=10.50.33.149)(PORT=1521)))
+
+  VERSION INFORMATION:
+	TNS for Linux: Version 11.2.0.1.0 - Production
+	TCP/IP NT Protocol Adapter for Linux: Version 11.2.0.1.0 - Production
+  Time: 09-MAR-2014 12:37:21
+  Tracing not turned on.
+  Tns error struct:
+    ns main err code: 12564
+    TNS-12564: TNS:connection refused
+    ns secondary err code: 0
+    nt main err code: 0
+    nt secondary err code: 0
+    nt OS err code: 0
+
+
+***********************************************************************
+Fatal NI connect error 12514, connecting to:
+ (DESCRIPTION=(CONNECT_DATA=(SERVICE_NAME=zkcl)(CID=(PROGRAM=topup_server)(HOST=i-31nn5uml)(USER=root)))(ADDRESS=(PROTOCOL=TCP)(HOST=10.50.33.149)(PORT=1521)))
+
+  VERSION INFORMATION:
+	TNS for Linux: Version 11.2.0.1.0 - Production
+	TCP/IP NT Protocol Adapter for Linux: Version 11.2.0.1.0 - Production
+  Time: 09-MAR-2014 12:37:23
+  Tracing not turned on.
+  Tns error struct:
+    ns main err code: 12564
+    TNS-12564: TNS:connection refused
+    ns secondary err code: 0
+    nt main err code: 0
+    nt secondary err code: 0
+    nt OS err code: 0
+
+
+***********************************************************************
+Fatal NI connect error 12514, connecting to:
+ (DESCRIPTION=(CONNECT_DATA=(SERVICE_NAME=zkcl)(CID=(PROGRAM=topup_server)(HOST=i-31nn5uml)(USER=root)))(ADDRESS=(PROTOCOL=TCP)(HOST=10.50.33.149)(PORT=1521)))
+
+  VERSION INFORMATION:
+	TNS for Linux: Version 11.2.0.1.0 - Production
+	TCP/IP NT Protocol Adapter for Linux: Version 11.2.0.1.0 - Production
+  Time: 09-MAR-2014 12:37:26
+  Tracing not turned on.
+  Tns error struct:
+    ns main err code: 12564
+    TNS-12564: TNS:connection refused
+    ns secondary err code: 0
+    nt main err code: 0
+    nt secondary err code: 0
+    nt OS err code: 0
+
+
+***********************************************************************
+Fatal NI connect error 12514, connecting to:
+ (DESCRIPTION=(CONNECT_DATA=(SERVICE_NAME=zkcl)(CID=(PROGRAM=topup_server)(HOST=i-31nn5uml)(USER=root)))(ADDRESS=(PROTOCOL=TCP)(HOST=10.50.33.149)(PORT=1521)))
+
+  VERSION INFORMATION:
+	TNS for Linux: Version 11.2.0.1.0 - Production
+	TCP/IP NT Protocol Adapter for Linux: Version 11.2.0.1.0 - Production
+  Time: 09-MAR-2014 12:37:31
+  Tracing not turned on.
+  Tns error struct:
+    ns main err code: 12564
+    TNS-12564: TNS:connection refused
+    ns secondary err code: 0
+    nt main err code: 0
+    nt secondary err code: 0
+    nt OS err code: 0
+
+
+***********************************************************************
+Fatal NI connect error 12514, connecting to:
+ (DESCRIPTION=(CONNECT_DATA=(SERVICE_NAME=zkcl)(CID=(PROGRAM=topup_server)(HOST=i-31nn5uml)(USER=root)))(ADDRESS=(PROTOCOL=TCP)(HOST=10.50.33.149)(PORT=1521)))
+
+  VERSION INFORMATION:
+	TNS for Linux: Version 11.2.0.1.0 - Production
+	TCP/IP NT Protocol Adapter for Linux: Version 11.2.0.1.0 - Production
+  Time: 09-MAR-2014 12:37:34
+  Tracing not turned on.
+  Tns error struct:
+    ns main err code: 12564
+    TNS-12564: TNS:connection refused
+    ns secondary err code: 0
+    nt main err code: 0
+    nt secondary err code: 0
+    nt OS err code: 0
+
+
+***********************************************************************
+Fatal NI connect error 12514, connecting to:
+ (DESCRIPTION=(CONNECT_DATA=(SERVICE_NAME=zkcl)(CID=(PROGRAM=topup_server)(HOST=i-31nn5uml)(USER=root)))(ADDRESS=(PROTOCOL=TCP)(HOST=10.50.33.149)(PORT=1521)))
+
+  VERSION INFORMATION:
+	TNS for Linux: Version 11.2.0.1.0 - Production
+	TCP/IP NT Protocol Adapter for Linux: Version 11.2.0.1.0 - Production
+  Time: 09-MAR-2014 12:37:42
+  Tracing not turned on.
+  Tns error struct:
+    ns main err code: 12564
+    TNS-12564: TNS:connection refused
+    ns secondary err code: 0
+    nt main err code: 0
+    nt secondary err code: 0
+    nt OS err code: 0
+
+
+***********************************************************************
+Fatal NI connect error 12514, connecting to:
+ (DESCRIPTION=(CONNECT_DATA=(SERVICE_NAME=zkcl)(CID=(PROGRAM=topup_server)(HOST=i-31nn5uml)(USER=root)))(ADDRESS=(PROTOCOL=TCP)(HOST=10.50.33.149)(PORT=1521)))
+
+  VERSION INFORMATION:
+	TNS for Linux: Version 11.2.0.1.0 - Production
+	TCP/IP NT Protocol Adapter for Linux: Version 11.2.0.1.0 - Production
+  Time: 09-MAR-2014 12:37:44
+  Tracing not turned on.
+  Tns error struct:
+    ns main err code: 12564
+    TNS-12564: TNS:connection refused
+    ns secondary err code: 0
+    nt main err code: 0
+    nt secondary err code: 0
+    nt OS err code: 0
+
+
+***********************************************************************
+Fatal NI connect error 12514, connecting to:
+ (DESCRIPTION=(CONNECT_DATA=(SERVICE_NAME=zkcl)(CID=(PROGRAM=topup_server)(HOST=i-31nn5uml)(USER=root)))(ADDRESS=(PROTOCOL=TCP)(HOST=10.50.33.149)(PORT=1521)))
+
+  VERSION INFORMATION:
+	TNS for Linux: Version 11.2.0.1.0 - Production
+	TCP/IP NT Protocol Adapter for Linux: Version 11.2.0.1.0 - Production
+  Time: 09-MAR-2014 12:38:02
+  Tracing not turned on.
+  Tns error struct:
+    ns main err code: 12564
+    TNS-12564: TNS:connection refused
+    ns secondary err code: 0
+    nt main err code: 0
+    nt secondary err code: 0
+    nt OS err code: 0

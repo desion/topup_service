@@ -49,18 +49,20 @@ class TopupServer{
 		virtual void SetSeqId(uint32_t *seq_id);
 
 	public:
-		const char *confPath;		//配置文件路径
-		const char *confName;		//配置文件名
-		const char *logPath;		//日志路径
-		const char *logName;		//日志文件名
+		const char *confPath;			//配置文件路径
+		const char *confName;			//配置文件名
+		const char *logPath;			//日志路径
+		const char *logName;			//日志文件名
 
-		char log[1024];				//日志缓冲区
-		int	log_len;				//日志位置
-		SoBase topup_so;			//充值服务动态链接库
+		char log[1024];					//日志缓冲区
+		int	log_len;					//日志位置
+		SoBase topup_so;				//TMall充值服务动态链接库
+		SoBase customer_so;				//放货动态链接库
+		SoBase channel_so;				//渠道充值动态链接库
 		ConnectionManager *conn_manager;	//数据库连接池
-		uint32_t seq_id;			//系统序列号，用于标记请求
+		uint32_t seq_id;				//系统序列号，用于标记请求
 		pthread_mutex_t seq_lock;
-		LOG_HANDLE  service_log;    //日志文件句柄
+		LOG_HANDLE  service_log;		//日志文件句柄
 };
 
 extern TopupServer *P_TPServer;

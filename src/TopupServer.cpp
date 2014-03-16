@@ -178,12 +178,24 @@ void TopupServer::GlobalInit()
 	}
 	printf("connManager user:%s\tconnManager passwd:%s\n", conn_manager->m_userName.c_str(), conn_manager->m_passWord.c_str());
 
-	//加载充值服务动态链接库
-	if(so_init(&topup_so, gconf->p_so_path, so_topup_reload)){
-		slog_write(LL_FATAL, "so load failed %s", gconf->p_so_path);
+	//TMall加载充值服务动态链接库
+	if(so_init(&topup_so, gconf->p_tmall_path, so_topup_reload)){
+		slog_write(LL_FATAL, "tmall so load failed %s", gconf->p_tmall_path);
 		exit(EXIT_FAILURE);
 	}else{
-		slog_write(LL_NOTICE, "so load success %s", gconf->p_so_path);
+		slog_write(LL_NOTICE, "tmall so load success %s", gconf->p_tmall_path);
+	}	
+	if(so_init(&customer_so, gconf->p_customer_path, so_topup_reload)){
+		slog_write(LL_FATAL, "customer so load failed %s", gconf->p_customer_path);
+		exit(EXIT_FAILURE);
+	}else{
+		slog_write(LL_NOTICE, "customer so load success %s", gconf->p_customer_path);
+	}	
+	if(so_init(&channel_so, gconf->p_channel_path, so_topup_reload)){
+		slog_write(LL_FATAL, "channel so load failed %s", gconf->p_channel_path);
+		exit(EXIT_FAILURE);
+	}else{
+		slog_write(LL_NOTICE, "channel so load success %s", gconf->p_channel_path);
 	}	
 }
 

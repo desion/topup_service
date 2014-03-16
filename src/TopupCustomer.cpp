@@ -254,45 +254,7 @@ int TopupImpl::TmallNotify(string &response){
         return 1;
     }
 	//向天猫或下游订购用户发送回调请求
-	char buf[2048] = {0};
-	char snap_encode[256] = {0};
-	char md5str[33] = {0};
-	int len = 0;
-	url_encode(m_topup_info->qs_info.tbOrderSnap.c_str(), m_topup_info->qs_info.tbOrderSnap.length(), snap_encode, 256);
-	if(m_topup_info->status == SUCESS){
-		string ts;
-		len += sprintf(buf,
-			   	"coopId=%s&tbOrderNo=%s&coopOrderNo=%s&coopOrderStatus=SUCCESS&coopOrderSnap=%s&coopOrderSuccessTime=%s",
-				m_topup_info->qs_info.coopId, m_topup_info->qs_info.coopOrderNo, 
-				m_topup_info->qs_info.tbOrderSnap.c_str(),ts.c_str());
-		buf[len] = '\0';
-		if(url_signature(buf ,GlobalConfig::Instance()->private_key , md5str) != 0){
-			
-		}
-		len = 0;
-		len += sprintf(buf,
-			   	"coopId=%s&tbOrderNo=%s&coopOrderNo=%s&coopOrderStatus=SUCCESS&coopOrderSnap=%s&coopOrderSuccessTime=%s&sign=%s",
-				m_topup_info->qs_info.coopId, m_topup_info->qs_info.coopOrderNo, snap_encode, ts.c_str(), md5str);
-		buf[len] = '\0';
-		httpclent_perform(m_topup_info->qs_info.notifyUrl.c_str(), buf, &parse_tmall_response);
-	}else if(m_topup_info->status == FAIL){
-		len += sprintf(buf,
-			   	"coopId=%s&tbOrderNo=%s&coopOrderNo=%s&coopOrderStatus=FAILED&failedCode=%s",
-				m_topup_info->qs_info.coopId, m_topup_info->qs_info.coopOrderNo, 
-				"0501");
-		buf[len] = '\0';
-		if(url_signature(buf ,GlobalConfig::Instance()->private_key , md5str) != 0){
-			
-		}
-		len = 0;
-		len += sprintf(buf,
-			   	"coopId=%s&tbOrderNo=%s&coopOrderNo=%s&coopOrderStatus=FAILED&failedCode=%s&sign=%s",
-				m_topup_info->qs_info.coopId, m_topup_info->qs_info.coopOrderNo,  "0501", md5str);
-		buf[len] = '\0';
-		httpclent_perform(m_topup_info->qs_info.notifyUrl.c_str(), buf, &parse_tmall_response);
-	}else{
-		return 0;
-	}
+	
 	//验证返回结果，并且实现重发策略
 	return 0;
 }
@@ -340,9 +302,7 @@ int TopupImpl::MakeSuccessReplay(const char* status, string &result){
 	len += sprintf(buf + len, "<coopOrderNo>%s</coopOrderNo>", m_topup_info->qs_info.coopOrderNo.c_str());
 	len += sprintf(buf + len, "%s", status);
 	len += sprintf(buf + len, "<coopOrderSnap>%s</coopOrderSnap>", m_topup_info->qs_info.tbOrderSnap.c_str());
-	string ts;
-	get_time_now("%Y%m%d%H%M%S", ts);
-	len += sprintf(buf + len, "<coopOrderSuccessTime>%s</coopOrderSuccessTime>", ts.c_str());
+	len += sprintf(buf + len, "<coopOrderSuccessTime>xxx</coopOrderSuccessTime>");
 	len += sprintf(buf + len, "</response>");
 	result = buf;
 	return len;

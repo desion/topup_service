@@ -118,43 +118,43 @@ bool parse_query(const char *query_str, TopupInfo *topup_info){
 			if(parse_pair(pr,key, value)){
 				if(strcmp(key, "coopId") == 0)          //商家编号
 				{
-					topup_info->coopId = value;
+					topup_info->qs_info.coopId = value;
 				}
 				else if(strcmp(key, "tbOrderNo") == 0)       //淘宝的订单号
 				{
-					topup_info->tbOrderNo = value;
+					topup_info->qs_info.tbOrderNo = value;
 				}
 				else if(strcmp(key ,"cardId") == 0)          //充值卡商品编号
 				{
-					topup_info->cardId = value;
+					topup_info->qs_info.cardId = value;
 				}
 				else if(strcmp(key, "cardNum") == 0)            //充值卡数量
 				{
-					topup_info->cardNum = atoi(value);
+					topup_info->qs_info.cardNum = atoi(value);
 				}
 				else if(strcmp(key, "customer") == 0)        //手机号码
 				{
-					topup_info->customer = value;
+					topup_info->qs_info.customer = value;
 				}
 				else if(strcmp(key , "sum") == 0)             //本次充值总金额
 				{
-					topup_info->sum = atof(value);
+					topup_info->qs_info.sum = atof(value);
 				}
 				else if(strcmp(key, "tbOrderSnap") == 0)     //商品信息快照
 				{
-					topup_info->tbOrderSnap = value;
+					topup_info->qs_info.tbOrderSnap = value;
 				}
 				else if(strcmp(key, "notifyUrl") == 0)       //异同通知地址
 				{
-					topup_info->notifyUrl = value;
+					topup_info->qs_info.notifyUrl = value;
 				}
 				else if(strcmp(key, "sign") == 0)            //签名字符串
 				{
-					topup_info->sign = value;
+					topup_info->qs_info.sign = value;
 				}
 				else if(strcmp(key , "version") == 0)         //版本
 				{
-					topup_info->version = value;
+					topup_info->qs_info.version = value;
 				}
 				//printf("key:%s\tvalue:%s\n", key, value);
 			}
@@ -164,43 +164,43 @@ bool parse_query(const char *query_str, TopupInfo *topup_info){
 		if(parse_pair(pr, key, value)){
 			if(strcmp(key, "coopId") == 0)          //商家编号
 			{
-				topup_info->coopId = value;
+				topup_info->qs_info.coopId = value;
 			}
 			else if(strcmp(key, "tbOrderNo") == 0)       //淘宝的订单号
 			{
-				topup_info->tbOrderNo = value;
+				topup_info->qs_info.tbOrderNo = value;
 			}
 			else if(strcmp(key ,"cardId") == 0)          //充值卡商品编号
 			{
-				topup_info->cardId = value;
+				topup_info->qs_info.cardId = value;
 			}
 			else if(strcmp(key, "cardNum") == 0)            //充值卡数量
 			{
-				topup_info->cardNum = atoi(value);
+				topup_info->qs_info.cardNum = atoi(value);
 			}
 			else if(strcmp(key, "customer") == 0)        //手机号码
 			{
-				topup_info->customer = value;
+				topup_info->qs_info.customer = value;
 			}
 			else if(strcmp(key , "sum") == 0)             //本次充值总金额
 			{
-				topup_info->sum = atof(value);
+				topup_info->qs_info.sum = atof(value);
 			}
 			else if(strcmp(key, "tbOrderSnap") == 0)     //商品信息快照
 			{
-				topup_info->tbOrderSnap = value;
+				topup_info->qs_info.tbOrderSnap = value;
 			}
 			else if(strcmp(key, "notifyUrl") == 0)       //异同通知地址
 			{
-				topup_info->notifyUrl = value;
+				topup_info->qs_info.notifyUrl = value;
 			}
 			else if(strcmp(key, "sign") == 0)            //签名字符串
 			{
-				topup_info->sign = value;
+				topup_info->qs_info.sign = value;
 			}
 			else if(strcmp(key , "version") == 0)         //版本
 			{
-				topup_info->version = value;
+				topup_info->qs_info.version = value;
 			}
 			//printf("key:%s\tvalue:%s\n", key, value);
 		}
@@ -323,4 +323,35 @@ int url_decode(const char* str, const int strSize, char* result, const int resul
 	}
     result[j] = 0;
     return j;
+}
+
+int url_signature(const char* url,const char* private_key, char *md5str){
+	map<string, string, cmpKeyAscii> entitys;
+    bool parse_ret = parse_params(url, &entitys);
+	if(!parse_ret){
+		return 1;
+	}
+    char signStr[2048] = {0};
+    int len = 0;
+    map<string, string>::iterator it = entitys.begin();
+    for(;it != entitys.end(); ++it){
+        if(strcmp("sign", it->first.c_str()) == 0){
+            continue;
+        }
+        len += sprintf(signStr + len, "%s%s", it->first.c_str(), it->second.c_str());
+    }
+    len += sprintf(signStr + len, "529d9ce791e47401de40233e26d954c6");
+    str2md5(signStr,len, md5str);
+#ifdef DEBUG
+    printf("SIGN STRING:%s\n", signStr);
+    printf("MD5:%s\n", md5str);
+#endif
+	return 0;
+}
+
+size_t parse_tmall_response(void *buffer, size_t size, size_t count, void *args)                                                    {
+	//TODO 解析返回xml，将解析结果通过args返回
+	fprintf(stdout, "%s\n", (char*)buffer);
+	*(int*)args = 1;
+	return size * count;
 }

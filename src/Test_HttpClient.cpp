@@ -139,6 +139,33 @@ bool TEST_SIGNNOMATCH_CHARGE()
 	return true;
 }
 
+bool TEST_QUERY_ORDER(){
+	printf("--------------------订单查询测试------------------\n");
+	map<string, string, cmpKeyAscii> entitys;
+	char md5[33] = {0};
+	char signStr[2048] = {0};
+	const char *query_ori = "coopId=928707139&tbOrderNo=20140303231300";
+	const char *query = "coopId=928707139&tbOrderNo=20140303231300&sign=111";
+	bool parse_ret = parse_params(query, &entitys);
+	map<string, string>::iterator it = entitys.begin();
+	int len = 0;
+    for(;it != entitys.end(); ++it){
+        if(strcmp("sign", it->first.c_str()) == 0){
+            continue;
+        }
+        printf("PARAM:%s:%s\n", it->first.c_str(), it->second.c_str());
+        len += sprintf(signStr + len, "%s%s", it->first.c_str(), it->second.c_str());
+    }
+    len += sprintf(signStr + len, "529d9ce791e47401de40233e26d954c6");
+    printf("Sign String:%s\n", signStr);
+    str2md5(signStr,len, md5);
+	len = 0;
+	len += sprintf(signStr + len,"%s", query_ori);
+	len += sprintf(signStr + len,"&sign=%s", md5);
+	httpclent_perform("http://127.0.0.1/fcgi-bin/query.fcg", signStr, &debug);
+	return true;
+}
+
 bool TEST_CONNECTION(){
 	GlobalConfig *gconf = GlobalConfig::Instance();
     if(gconf == NULL || !gconf->Init("../conf/topup.ini")){
@@ -163,6 +190,7 @@ bool TEST_CONNECTION(){
     }
     stmt->closeResultSet(rs);
     conn->terminateStatement(stmt);
+	return true;
 }
 
 int main(int argc, char *argv[]){
@@ -186,6 +214,7 @@ int main(int argc, char *argv[]){
 	TEST_CONNECTION();
 	TEST_SIGN();
 	TEST_NORMAL_CHARGE();
+	TEST_QUERY_ORDER();
 	//TEST_LAKEPARAM_CHARGE();
 	return 0;
 }

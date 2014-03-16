@@ -41,19 +41,23 @@ struct cmpKeyAscii
 
 typedef size_t (*PARSE_FUNCTION)(void* buffer, size_t size, size_t nmemb, void* user_p);
 
-extern bool httpclent_perform(const char *url, const char *params, PARSE_FUNCTION);
+bool httpclent_perform(const char *url, const char *params, PARSE_FUNCTION);
 
-extern bool parse_params(const char *query_str, map<std::string, std::string, cmpKeyAscii>*);
+bool parse_params(const char *query_str, map<std::string, std::string, cmpKeyAscii>*);
 
-extern int str2md5(const char* src, int len, char *md5str);
+int str2md5(const char* src, int len, char *md5str);
 
-extern bool parse_query(const char *query_str, TopupInfo *topup_info);
+bool parse_query(const char *query_str, TopupInfo *topup_info);
 
-extern int change_code(const char* from, const char* to, char *inbuf, size_t *insize, char *outbuf, size_t *outsize);
+int change_code(const char* from, const char* to, char *inbuf, size_t *insize, char *outbuf, size_t *outsize);
 
-extern int url_encode(const char* str, const int strSize, char* result, const int resultSize);
+int url_encode(const char* str, const int strSize, char* result, const int resultSize);
 
-extern int url_decode(const char* str, const int strSize, char* result, const int resultSize);
+int url_decode(const char* str, const int strSize, char* result, const int resultSize);
+
+int url_signature(const char* url,const char* private_key, char *md5str);
+
+size_t parse_tmall_response(void *buffer, size_t size, size_t count, void *args);
 
 #endif //__HTTPCLIENT_H_
 

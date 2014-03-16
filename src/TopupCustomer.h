@@ -4,8 +4,8 @@
 	> Mail: wdxin1322@qq.com 
 	> Created Time: Sat 08 Feb 2014 04:10:52 PM CST
  ************************************************************************/
-#ifndef __TOPUP_IMPL_H
-#define __TOPUP_IMPL_H
+#ifndef __TOPUP_CUSTOMER_H
+#define __TOPUP_CUSTOMER_H
 
 #include <iostream>
 #include "TopupInterface_types.h"
@@ -39,14 +39,12 @@ class TopupImpl: public TopupBase{
 	//上行接口
 	protected:
 		//针对各个接口的处理函数
-		//天猫充值接口
+		//放货充值接口
 		int TmallCharge(string &response); 
-		//天猫查询接口
+		//放货查询接口
 		int TmallQuery(string &response);
-		//天猫回调接口，向TMALL发送回调请求
+		//放货回调接口，向客户发送回调请求
 		int TmallNotify(string &response);
-		//天猫取消接口
-		int TmallCancel(string &response);
 		//查询余额接口，第三方订购商使用
 		int GetBalance(string &response);
 	
@@ -84,7 +82,7 @@ class TopupImpl: public TopupBase{
 
 //动态链接库调用接口，用于创建相应实例
 extern "C" TopupBase* m_create() {
-	    return new TopupImpl;
+	    return new TopupCustomer;
 }
 
 //动态链接库调用接口，用于销毁相应的实例,可不可以通过得到的指针直接销毁

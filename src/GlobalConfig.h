@@ -33,10 +33,12 @@ class GlobalConfig{
 		int n_min_connection;
 		int n_inc_connection;
 		char *p_tplog_prefix;		//业务日志前缀
-		char *p_so_path;			//充值服务动态链接库路径
+		char *p_tmall_path;			//充值服务动态链接库路径
+		char *p_customer_path;		//放货用动态链接库路径
+		char *p_channel_path;		//充值渠道动态链接库
 
 		const char* private_key;
-		const char* coopid;
+		const char* coopid;	
 
 		map<string, string> errors;
 

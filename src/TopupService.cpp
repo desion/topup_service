@@ -20,8 +20,9 @@ void TopupService::SendRequest(std::string& _return,const TopupRequest& request)
 	SoBase *so_base = &P_TPServer->topup_so;
 	//创建充值实例
 	DLLCALL(so_base, create, topupBase);
+	TopupInfo *tpInfo = new TopupInfo();
 	if(topupBase != NULL){
-		TopupInfo *tpInfo = new TopupInfo();
+		P_TPServer->SetSeqId(&tpInfo->seqid); 
 		ConnectionManager *connManager = ConnectionManager::Instance();
 		Connection *conn = connManager->CreateConnection();
 		if(conn == NULL){
@@ -38,6 +39,7 @@ void TopupService::SendRequest(std::string& _return,const TopupRequest& request)
 	}
 	//销毁充值实例
 	DLLCALL2(so_base, destory, topupBase);
+	delete tpInfo;
 }
 // 发送服务管理等请求
 int32_t TopupService::Admin(const ManageRequest& request){

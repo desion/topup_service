@@ -62,6 +62,7 @@ int ChargeBusiness::SelectBestChannel(int value, int province, int op, vector<Ch
 			channel.repeat = rs->getInt(5);
 			channel.discount = rs->getFloat(6);
 			channel.interfaceName = rs->getString(7);
+			channels.push_back(channel);
 			ret++;
 		}
 		stmt->closeResultSet(rs);
@@ -78,18 +79,19 @@ int ChargeBusiness::CreateTmallOrder(TopupInfo *topupInfo, ChannelInfo &channelI
 	int ret = 0;
 	try{
 		Statement *stmt = conn->createStatement(SQL_CREATE_ORDER);
-		stmt->setString(1, topupInfo->customer);
-		stmt->setString(2, topupInfo->customer);
-		stmt->setInt(3, topupInfo->province);
-		stmt->setInt(4, topupInfo->value);
-		uint64_t sysNo = encode_orderno(topupInfo->customer);
+		stmt->setAutoCommit(false);
+		stmt->setString(1, topupInfo->qs_info.customer);
+		stmt->setString(2, topupInfo->qs_info.customer);
+		stmt->setInt(3, topupInfo->qs_info.province);
+		stmt->setInt(4, topupInfo->qs_info.value);
+		uint64_t sysNo = encode_orderno(topupInfo->qs_info.customer);
 		if(sysNo <= 0){
 			return -2;
 		}
 		string systemNo = lexical_cast<string>(sysNo);
 		stmt->setString(5, systemNo);
 		stmt->setString(6, systemNo);
-		stmt->setString(7, topupInfo->tbOrderNo);
+		stmt->setString(7, topupInfo->qs_info.tbOrderNo);
 		stmt->setInt(8, 1);
 		string time_str;
 		int ret = get_time_now("%Y/%m/%d %H:%M:%S", time_str);
@@ -100,15 +102,47 @@ int ChargeBusiness::CreateTmallOrder(TopupInfo *topupInfo, ChannelInfo &channelI
 		stmt->setString(10, time_str);
 		stmt->setInt(11, 0);
 		stmt->setInt(12, 1);
-		stmt->setInt(13, topupInfo->op);
-		stmt->setFloat(14, topupInfo->sum / topupInfo->cardNum);
-		stmt->setFloat(15, topupInfo->price);
-		stmt->setFloat(16,topupInfo->price - topupInfo->sum / topupInfo->cardNum);
+		stmt->setInt(13, topupInfo->qs_info.op);
+		stmt->setFloat(14, topupInfo->qs_info.sum / topupInfo->qs_info.cardNum);
+		stmt->setFloat(15, topupInfo->qs_info.price);
+		stmt->setFloat(16,topupInfo->qs_info.price - topupInfo->qs_info.sum / topupInfo->qs_info.cardNum);
 		stmt->setInt(17, channelInfo.channelId);
+		stmt->executeUpdate();
+		conn->terminateStatement(stmt);
+	}catch (SQLException &sqlExcp){
+		HandleException(sqlExcp);
+		ret = -1;
 	}catch(std::exception &e){
 		HandleException(e);
 		ret = -1;
 	}
 	Finish();
 	return ret;	
+}
+
+int ChargeBusiness::QueryOrder(TopupInfo *topupInfo){
+	int ret = 0;
+	try{
+		Statement *stmt = conn->createStatement(SQL_CREATE_ORDER);
+		string tbOrderNo = topupInfo->qs_info.tbOrderNo;
+		stmt->setString(1, tbOrderNo);
+		ResultSet *rs = stmt->executeQuery();
+		while(rs->next())
+		{
+			topupInfo->qs_info.tbOrderNo = rs->getString(1);
+			topupInfo->qs_info.coopOrderNo = rs->getString(2);
+			topupInfo->status = (OrderStatus)rs->getInt(3);
+			string ts = rs->getString(4);
+			trans_time(ts, topupInfo->update_time);
+			ret++;
+		}
+	}catch(SQLException &sqlExcp){
+		HandleException(sqlExcp);
+		ret = -1;
+	}catch(std::exception &e){
+		HandleException(e);
+		ret = -1;
+	}
+	Finish();
+	return ret;
 }

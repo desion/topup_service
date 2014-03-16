@@ -95,10 +95,39 @@ void decode_orderno(const uint64_t orderno, uint64_t *phoneno, uint32_t *ttime){
 
 int get_time_now(const char* format, string &time_str){
 	time_t t = time(NULL);
-	char buf[255];
-	int ret = strftime(buf, 255, format, localtime(&t));
+	char buf[30];
+	int ret = strftime(buf, 30, format, localtime(&t));
+	printf("time:%s\n", buf);
 	time_str = buf;
 	return ret;
+}
+
+int get_strtime(const uint32_t ts, const char* format, string &time_str){
+	char buf[30];
+	time_t t = (time_t)ts;
+	int ret = strftime(buf, 30, format, localtime(&t));
+	time_str = buf;
+	return ret;
+}
+//将其它格式的时间转换为yyyymmddHHmmSS
+void trans_time(string &from, string &to){
+	char buf[30] = {0};
+	strcpy(buf, from.c_str());
+	char *p1 = buf;
+	char *p2 = buf;
+	char ch;
+	while(*p1){
+		if(isdigit(*p1)){
+			ch = *p1;
+			*p2 = ch;
+			p1++;
+			p2++;	
+		}else{
+			p1++;
+		}
+	}
+	*p2 = '\0';
+	to = buf;
 }
 
 int calc_time_span(struct timeval *start_time){                                                                                                                                                         
