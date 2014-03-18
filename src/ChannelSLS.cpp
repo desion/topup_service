@@ -10,9 +10,9 @@
 using namespace std;
 
 //向手拉手发送充值请求，对结果进行处理
-int ChannelSLS::Charge(TopupServer *tpServer, map<string, string> &params, string &result)
+int ChannelSLS::Charge(TopupInfo *topup_info, string &result)
 {
-	TP_WRITE_LOG(tpServer, "[ChannelSLS][Charge] CALL");
+	TP_WRITE_LOG(topup_info, "[ChannelSLS][Charge] CALL");
 	//填充参数
 	//发送充值请求
 	//解析处理结果
@@ -21,9 +21,9 @@ int ChannelSLS::Charge(TopupServer *tpServer, map<string, string> &params, strin
 }
 
 //向手拉手发送订单查询请求，并对结果进行处理
-int ChannelSLS::Query(TopupServer *tpServer, map<string, string> &params, string &result)
+int ChannelSLS::Query(TopupInfo *topup_info, string &result)
 {
-	TP_WRITE_LOG(tpServer, "[ChannelSLS][Query] CALL");
+	TP_WRITE_LOG(topup_info, "[ChannelSLS][Query] CALL");
 	//填充参数
 	//发送请求
 	//解析处理结果
@@ -31,7 +31,7 @@ int ChannelSLS::Query(TopupServer *tpServer, map<string, string> &params, string
 }
 
 //向手拉手发送余额查询请求
-int ChannelSLS::Balance(map<string, string> &params, double &balance)
+int ChannelSLS::Balance(TopupInfo *topup_info, double &balance)
 {
 	//填充参数
 	//发送请求
@@ -40,8 +40,8 @@ int ChannelSLS::Balance(map<string, string> &params, double &balance)
 }
 
 //接受手拉手的异步回调请求
-int ChannelSLS::AcceptNotify(TopupServer *tpServer, map<string, string> &params, string &result)
+int ChannelSLS::AcceptNotify(TopupInfo *topup_info, string &result)
 {
-	TP_WRITE_LOG(tpServer, "[ChannelSLS][AcceptNotify] CALL");
+	TP_WRITE_LOG(topup_info, "[ChannelSLS][AcceptNotify] CALL");
 	return 0;
 }

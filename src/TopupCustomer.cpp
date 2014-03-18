@@ -212,7 +212,7 @@ int TopupImpl::TmallQuery(string &response){
 			case CREATE:
 				MakeSuccessReplay(SUNDERWAY, response);	
 				break;
-			case FAIL:
+			case FAILED:
 				MakeSuccessReplay(SUNDERWAY, response);	
 				break;
 			default:

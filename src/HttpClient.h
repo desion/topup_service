@@ -16,6 +16,8 @@
 #include <openssl/md5.h>
 #include <stdlib.h>
 #include "TopupServer.h"
+#include <tinyxml/tinyxml.h>
+#include <tinyxml/tinystr.h>
 #include "TopupInterface_types.h"
 #include "dllcall.h"
 #include <iconv.h>
@@ -38,10 +40,9 @@ struct cmpKeyAscii
 	}
 };
 
-
 typedef size_t (*PARSE_FUNCTION)(void* buffer, size_t size, size_t nmemb, void* user_p);
 
-bool httpclent_perform(const char *url, const char *params, PARSE_FUNCTION);
+bool httpclent_perform(const char *url, const char *params, PARSE_FUNCTION, void *wdata);
 
 bool parse_params(const char *query_str, map<std::string, std::string, cmpKeyAscii>*);
 

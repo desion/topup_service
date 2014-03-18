@@ -17,6 +17,8 @@
 #include "TopupBase.h"
 #include "slog.h"
 #include "selog.h"
+#include <openssl/md5.h>
+#include "jsoncpp/json.h"
 
 #define MAX_LOG_LEN  1024
 
@@ -53,7 +55,7 @@
 	}\
 }
 
-enum OrderStatus{CREATE = 0, UNDERWAY, SUCESS, FAIL};
+enum OrderStatus{CREATE = 0, UNDERWAY, SUCESS, FAILED};
 
 typedef struct ChannelInfo{
 	int channelId;			//渠道ID
@@ -196,4 +198,7 @@ extern void write_err_msg(TopupInfo *topupInfo, vector<string>& errors);
 extern int get_strtime(const uint32_t ts, const char* format, string &time_str);
 
 extern void trans_time(string &from, string &to);
+
+extern void serialize_topupinfo(TopupInfo* topup_info, string &strout);
+
 #endif  //__TOPUP_UTILS_H

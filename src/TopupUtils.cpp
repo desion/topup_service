@@ -142,3 +142,47 @@ void write_err_msg(TopupInfo *topupInfo, vector<string>& errors){
 		TP_WRITE_ERR(topupInfo, "seqid:%d\t(SelectBestChannel)\t%s", topupInfo->seqid, it->c_str());
 	}
 }
+
+/***
+ *  * 对字符串做MD5加密
+ *   * */
+/*
+int str2md5(const char* src, int len,char *md5str){
+    if(src == NULL)
+        return 1;
+    if(len <= 0)
+        return 2;
+    if(md5str == NULL)
+        return 3;
+    unsigned char md[16];
+    unsigned char* tmp = (unsigned char*)malloc(len * sizeof(unsigned char));
+    if(tmp == NULL)
+        return 4;
+	memcpy(tmp, src, len);
+	int i;
+	MD5(tmp ,len ,md);
+	for (i = 0; i < 16; i++){
+	    sprintf(md5str + i*2,"%2.2x",md[i]);
+	}
+	free(tmp);
+	return 0;
+}*/
+void serialize_topupinfo(TopupInfo* topup_info, string &strout){
+	Json::Value root;
+	root["coopId"] = topup_info->qs_info.coopId;						//商家编号
+	root["tbOrderNo"] = topup_info->qs_info.tbOrderNo;					//淘宝的订单号
+	root["coopOrderNo"] = topup_info->qs_info.coopOrderNo;				//系统生成订单号
+	root["cardId"] = topup_info->qs_info.cardId;						//充值卡商品编号
+	root["cardNum"] = topup_info->qs_info.cardNum;						//充值卡数量
+	root["customer"] = topup_info->qs_info.customer;					//手机号码
+	root["sum"] = topup_info->qs_info.sum;								//本次充值总金额
+	root["tbOrderSnap"] = topup_info->qs_info.tbOrderSnap;				//商品信息快照
+	root["notifyUrl"] = topup_info->qs_info.notifyUrl;					//异同通知地址
+	root["price"] = topup_info->qs_info.price;
+	root["value"] = topup_info->qs_info.value;
+	root["op"] = topup_info->qs_info.op;
+	root["province"] = topup_info->qs_info.province;
+	//strout = root.toStyledString();
+	Json::FastWriter writer;
+	strout = writer.write(root);
+}

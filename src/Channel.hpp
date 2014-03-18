@@ -16,13 +16,13 @@ class Channel{
 
 	public:
 		//请求充值
-		virtual int Charge(TopupServer *tpServer, map<string, string> &params, string &result) = 0;
+		virtual int Charge(TopupInfo *topup_info, string &result) = 0;
 		//查询订单
-		virtual int Query(TopupServer *tpServer, map<string, string> &params, string &result) = 0;
+		virtual int Query(TopupInfo *topup_info, string &result) = 0;
 		//查询余额
-		virtual int Balance(map<string, string> &params, double &balance) = 0;
+		virtual int Balance(TopupInfo *topup_info, double &balance) = 0;
 		//接受Notify请求
-		virtual int AcceptNotify(TopupServer *tpServer, map<string, string> &params, string &result) = 0;
+		virtual int AcceptNotify(TopupInfo *topup_info, string &result) = 0;
 
 };
 
@@ -34,11 +34,11 @@ class ChannelSLS : public Channel{
 			m_channel_id = "SLS";
 		}
 	public:
-		int Charge(TopupServer *tpServer, map<string, string> &params, string &result);
+		int Charge(TopupInfo *topup_info, string &result);
 
-		int Query(TopupServer *tpServer, map<string, string> &params, string &result);
+		int Query(TopupInfo *topup_info, string &result);
 
-		int Balance(map<string, string> &params, double &balance);
+		int Balance(TopupInfo *topup_info, double &balance);
 
-		int AcceptNotify(TopupServer *tpServer, map<string, string> &params, string &result);
+		int AcceptNotify(TopupInfo *topup_info, string &result);
 };

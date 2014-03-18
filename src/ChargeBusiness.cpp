@@ -146,3 +146,35 @@ int ChargeBusiness::QueryOrder(TopupInfo *topupInfo){
 	Finish();
 	return ret;
 }
+
+int ChargeBusiness::UpdateOrderStatus(TopupInfo *topupInfo){
+	int ret = 0;
+	try{
+		int status = 0;
+		if(topupInfo->status == SUCESS){
+			status = 1;
+		}else if(topupInfo->status == FAILED){
+			status = 2;
+		}
+		string ts;
+		get_time_now("%Y/%m/%d %H:%M:%S", ts);
+		int notify = 1;
+		Statement *stmt = conn->createStatement(SQL_UPDATE_STATUS);
+		stmt->setAutoCommit(false);
+		string tbOrderNo = topupInfo->qs_info.tbOrderNo;
+		stmt->setInt(1, status);
+		stmt->setInt(2, notify);
+		stmt->setString(3, ts);
+		stmt->setString(4, tbOrderNo);
+		stmt->executeUpdate();
+		conn->terminateStatement(stmt);
+	}catch(SQLException &sqlExcp){
+		HandleException(sqlExcp);
+		ret = -1;
+	}catch(std::exception &e){
+		HandleException(e);
+		ret = -1;
+	}
+	Finish();
+	return ret;
+}

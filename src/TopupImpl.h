@@ -14,6 +14,7 @@
 #include "ChargeBusiness.h"
 #include "TopupUtils.h"
 #include "HttpClient.h"
+#include "RedisClient.h"
 using namespace std;
 using namespace  ::topupinterface;
 
@@ -68,6 +69,8 @@ class TopupImpl: public TopupBase{
 		int CreateTmallOrder();
 		//向上游代理商发送充值请求，并取得返回的xml信息
 		int SendRequest(string &reponse);
+		
+		int UpdateStatus();
 
 		int QueryOrder();
 

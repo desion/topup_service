@@ -39,9 +39,8 @@ typedef struct Product{
 class ChargeBusiness: public BaseBusiness
 {
 public:
-	//获取天猫商品信息
 	int GetTmallProduct(string productId, Product &product);
-	//根据天猫的商品信息，选取最优的渠道
+
 	int SelectBestChannel(int value, int province, int op, vector<ChannelInfo>& channels);
 
 	int CreateTmallOrder(TopupInfo *topupInfo, ChannelInfo &channelInfo);

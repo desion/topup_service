@@ -36,6 +36,13 @@ bool GlobalConfig::Init(const char* confPath){
 	CHECKNULL(db_connString, "DATABASE:CONN_STRING IS NULL");
 	s_db_connString = db_connString;
 
+	char *redis_ip = iniparser_getstring(ini_dict, "REDIS:HOST",NULL);
+	CHECKNULL(db_connString, "REDIS:HOST IS NULL");
+	s_redis_ip = redis_ip;
+
+	n_redis_port = iniparser_getint(ini_dict, "REDIS:PORT", -1); 
+	n_redis_timeout = iniparser_getint(ini_dict, "REDIS:TIMEOUT", -1); 
+
 	p_tplog_prefix = iniparser_getstring(ini_dict, "COMMON:TPLOG_PREFIX",NULL);
 	CHECKNULL(p_tplog_prefix, "COMMON:TPLOG_PREFIX IS NULL");
 	
@@ -70,6 +77,7 @@ bool GlobalConfig::Init(const char* confPath){
 	n_max_connection = iniparser_getint(ini_dict, "DATABASE:MAX_CONNECTION", 0);
 	n_min_connection = iniparser_getint(ini_dict, "DATABASE:MIN_CONNECTION", 0);
 	n_inc_connection = iniparser_getint(ini_dict, "DATABASE:INCR_CONNECTION", 0);
+
 
 	private_key = "529d9ce791e47401de40233e26d954c6";
 	coopid="928707139";

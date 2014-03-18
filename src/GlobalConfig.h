@@ -40,6 +40,10 @@ class GlobalConfig{
 		const char* private_key;
 		const char* coopid;	
 
+		string s_redis_ip;
+		int n_redis_port;
+		int n_redis_timeout;
+
 		map<string, string> errors;
 
 	private:

@@ -16,13 +16,13 @@ using namespace std;
  * 发送http POST请求
  * 
  * */
-bool httpclent_perform(const char *url, const char *params, PARSE_FUNCTION parser){
+bool httpclent_perform(const char *url, const char *params, PARSE_FUNCTION parser, void *wdata){
 	CURL *curl;
 	CURLcode res;
 	curl_global_init(CURL_GLOBAL_ALL);
 	curl = curl_easy_init();
+	bool ret = true;
 	if(curl) {
-		char buf[1024];
 		curl_easy_setopt(curl, CURLOPT_URL, url);
 	    /* Now specify the POST data */ 
 	    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, params);
@@ -31,19 +31,23 @@ bool httpclent_perform(const char *url, const char *params, PARSE_FUNCTION parse
 
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, parser);
 
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)buf);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, wdata);
 	 
 	    /* Perform the request, res will get the return code */ 
 	    res = curl_easy_perform(curl);
 	    /* Check for errors */ 
-	    if(res != CURLE_OK)
+	    if(res != CURLE_OK){
 		      fprintf(stderr, "curl_easy_perform() failed: %s\n",
 	          curl_easy_strerror(res));
+			ret = false;
+		}
 				 
 	    /* always cleanup */ 
 	    curl_easy_cleanup(curl);
+   }else{
+        ret = false;
    }
-   return true;
+   return ret;
 }
 
 /***
@@ -340,7 +344,7 @@ int url_signature(const char* url,const char* private_key, char *md5str){
         }
         len += sprintf(signStr + len, "%s%s", it->first.c_str(), it->second.c_str());
     }
-    len += sprintf(signStr + len, "529d9ce791e47401de40233e26d954c6");
+    len += sprintf(signStr + len, private_key);
     str2md5(signStr,len, md5str);
 #ifdef DEBUG
     printf("SIGN STRING:%s\n", signStr);
@@ -349,9 +353,21 @@ int url_signature(const char* url,const char* private_key, char *md5str){
 	return 0;
 }
 
-size_t parse_tmall_response(void *buffer, size_t size, size_t count, void *args)                                                    {
+size_t parse_tmall_response(void *buffer, size_t size, size_t count, void *args){
 	//TODO 解析返回xml，将解析结果通过args返回
 	fprintf(stdout, "%s\n", (char*)buffer);
-	*(int*)args = 1;
+	TiXmlDocument doc;
+	if(!doc.Parse((const char*)buffer)){
+		*(int*)args = 0;
+		return size * count;
+	}
+	TiXmlHandle docHandle(&doc);
+	TiXmlElement* status_ele = docHandle.FirstChild("response").FirstChild("tbOrderSuccess").ToElement();
+	const char *status = status_ele->GetText();
+	if(strcmp(status, "T") == 0){
+		*(int*)args = 2;
+	}else if(strcmp(status, "F") == 0){
+		*(int*)args = 1;
+	}
 	return size * count;
 }

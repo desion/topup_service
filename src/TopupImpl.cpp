@@ -11,6 +11,7 @@
 #include "GlobalConfig.h"
 using namespace std;
 using namespace  ::topupinterface;
+using namespace boost;
 
 TopupImpl::TopupImpl(){
 	//m_topup_info = new TopupInfo();
@@ -212,7 +213,7 @@ int TopupImpl::TmallQuery(string &response){
 			case CREATE:
 				MakeSuccessReplay(SUNDERWAY, response);	
 				break;
-			case FAIL:
+			case FAILED:
 				MakeSuccessReplay(SUNDERWAY, response);	
 				break;
 			default:
@@ -228,72 +229,81 @@ int TopupImpl::TmallQuery(string &response){
 
 //回调接口，向TMALL发送回调请求，接口需要tmall和下游用户实现，该方法只发送回调请求
 int TopupImpl::TmallNotify(string &response){
-	if(m_topup_info->qs_info.coopId.empty()){
-		MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
-	    TP_WRITE_LOG(m_topup_info, "\t(TmallQuery) NO coopId %s", LAKE_PARAM_ERR);
-	    return 1;
-    }
-    if(m_topup_info->qs_info.tbOrderNo.empty()){
-        MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
-        TP_WRITE_LOG(m_topup_info, "\t(TmallQuery) NO tbOrderNo %s", LAKE_PARAM_ERR);
-        return 1;
-    }
-    if(m_topup_info->qs_info.coopOrderNo.empty()){
-        MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
-        TP_WRITE_LOG(m_topup_info, "\t(TmallQuery) NO tbOrderNo %s", LAKE_PARAM_ERR);
-        return 1;
-    }
-    if(m_topup_info->qs_info.coopOrderStatus.empty()){
-        MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
-        TP_WRITE_LOG(m_topup_info, "\t(TmallQuery) NO tbOrderNo %s", LAKE_PARAM_ERR);
-        return 1;
-    }
-    if(m_topup_info->qs_info.sign.empty()){
-        MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
-        TP_WRITE_LOG(m_topup_info, "\t(TmallQuery) NO sign %s", LAKE_PARAM_ERR);
-        return 1;
-    }
-	//向天猫或下游订购用户发送回调请求
-	char buf[2048] = {0};
-	char snap_encode[256] = {0};
-	char md5str[33] = {0};
-	int len = 0;
-	url_encode(m_topup_info->qs_info.tbOrderSnap.c_str(), m_topup_info->qs_info.tbOrderSnap.length(), snap_encode, 256);
-	if(m_topup_info->status == SUCESS){
-		string ts;
-		len += sprintf(buf,
-			   	"coopId=%s&tbOrderNo=%s&coopOrderNo=%s&coopOrderStatus=SUCCESS&coopOrderSnap=%s&coopOrderSuccessTime=%s",
-				m_topup_info->qs_info.coopId, m_topup_info->qs_info.coopOrderNo, 
-				m_topup_info->qs_info.tbOrderSnap.c_str(),ts.c_str());
-		buf[len] = '\0';
-		if(url_signature(buf ,GlobalConfig::Instance()->private_key , md5str) != 0){
-			
+	int retry = 5;
+	int notify_status = 0;
+	while(retry > 0 && notify_status == 0){
+		retry--;
+		if(m_topup_info->qs_info.coopId.empty()){
+			MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
+			TP_WRITE_LOG(m_topup_info, "\t(TmallNotify) NO coopId %s", LAKE_PARAM_ERR);
+			return 1;
 		}
-		len = 0;
-		len += sprintf(buf,
-			   	"coopId=%s&tbOrderNo=%s&coopOrderNo=%s&coopOrderStatus=SUCCESS&coopOrderSnap=%s&coopOrderSuccessTime=%s&sign=%s",
-				m_topup_info->qs_info.coopId, m_topup_info->qs_info.coopOrderNo, snap_encode, ts.c_str(), md5str);
-		buf[len] = '\0';
-		httpclent_perform(m_topup_info->qs_info.notifyUrl.c_str(), buf, &parse_tmall_response);
-	}else if(m_topup_info->status == FAIL){
-		len += sprintf(buf,
-			   	"coopId=%s&tbOrderNo=%s&coopOrderNo=%s&coopOrderStatus=FAILED&failedCode=%s",
-				m_topup_info->qs_info.coopId, m_topup_info->qs_info.coopOrderNo, 
-				"0501");
-		buf[len] = '\0';
-		if(url_signature(buf ,GlobalConfig::Instance()->private_key , md5str) != 0){
-			
+		if(m_topup_info->qs_info.tbOrderNo.empty()){
+			MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
+			TP_WRITE_LOG(m_topup_info, "\t(TmallNotify) NO tbOrderNo %s", LAKE_PARAM_ERR);
+			return 1;
 		}
-		len = 0;
-		len += sprintf(buf,
-			   	"coopId=%s&tbOrderNo=%s&coopOrderNo=%s&coopOrderStatus=FAILED&failedCode=%s&sign=%s",
-				m_topup_info->qs_info.coopId, m_topup_info->qs_info.coopOrderNo,  "0501", md5str);
-		buf[len] = '\0';
-		httpclent_perform(m_topup_info->qs_info.notifyUrl.c_str(), buf, &parse_tmall_response);
-	}else{
-		return 0;
+		if(m_topup_info->qs_info.coopOrderNo.empty()){
+			MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
+			TP_WRITE_LOG(m_topup_info, "\t(TmallNotify) NO tbOrderNo %s", LAKE_PARAM_ERR);
+			return 1;
+		}
+		if(m_topup_info->qs_info.coopOrderStatus.empty()){
+			MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
+			TP_WRITE_LOG(m_topup_info, "\t(TmallNotify) NO tbOrderNo %s", LAKE_PARAM_ERR);
+			return 1;
+		}
+		if(m_topup_info->qs_info.notifyUrl.empty()){
+			MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
+			TP_WRITE_LOG(m_topup_info, "\t(TmallNotify) NO notifyUrl %s", LAKE_PARAM_ERR);
+			return 1;
+		}
+		//向天猫或下游订购用户发送回调请求
+		char buf[2048] = {0};
+		char snap_encode[256] = {0};
+		char md5str[33] = {0};
+		int len = 0;
+		url_encode(m_topup_info->qs_info.tbOrderSnap.c_str(), m_topup_info->qs_info.tbOrderSnap.length(), snap_encode, 256);
+		if(m_topup_info->status == SUCESS){
+			string ts;
+			len += sprintf(buf,
+					"coopId=%s&tbOrderNo=%s&coopOrderNo=%s&coopOrderStatus=SUCCESS&coopOrderSnap=%s&coopOrderSuccessTime=%s",
+					m_topup_info->qs_info.coopId.c_str(),m_topup_info->qs_info.tbOrderNo.c_str(),
+				   	m_topup_info->qs_info.coopOrderNo.c_str(), m_topup_info->qs_info.tbOrderSnap.c_str(),ts.c_str());
+			buf[len] = '\0';
+			if(url_signature(buf ,GlobalConfig::Instance()->private_key , md5str) != 0){
+				
+			}
+			len = 0;
+			len += sprintf(buf,
+				"coopId=%s&tbOrderNo=%s&coopOrderNo=%s&coopOrderStatus=SUCCESS&coopOrderSnap=%s&coopOrderSuccessTime=%s&sign=%s",
+				m_topup_info->qs_info.coopId.c_str(), m_topup_info->qs_info.tbOrderNo.c_str(),
+				m_topup_info->qs_info.coopOrderNo.c_str(), snap_encode, ts.c_str(), md5str);
+			buf[len] = '\0';
+			httpclent_perform(m_topup_info->qs_info.notifyUrl.c_str(), buf, &parse_tmall_response, (void*)(&notify_status));
+		}else if(m_topup_info->status == FAILED){
+			len += sprintf(buf,
+				"coopId=%s&tbOrderNo=%s&coopOrderNo=%s&coopOrderStatus=FAILED&failedCode=%s",
+				m_topup_info->qs_info.coopId.c_str(),m_topup_info->qs_info.tbOrderNo.c_str(),
+			   	m_topup_info->qs_info.coopOrderNo.c_str(), "0501");
+			buf[len] = '\0';
+			if(url_signature(buf ,GlobalConfig::Instance()->private_key , md5str) != 0){
+				
+			}
+			len = 0;
+			len += sprintf(buf,
+					"coopId=%s&tbOrderNo=%s&coopOrderNo=%s&coopOrderStatus=FAILED&failedCode=%s&sign=%s",
+					m_topup_info->qs_info.coopId.c_str(),m_topup_info->qs_info.tbOrderNo.c_str(),
+				   	m_topup_info->qs_info.coopOrderNo.c_str(),  "0501", md5str);
+			buf[len] = '\0';
+			httpclent_perform(m_topup_info->qs_info.notifyUrl.c_str(), buf, &parse_tmall_response, (void*)(&notify_status));
+		}else{
+			return 0;
+		}
 	}
 	//验证返回结果，并且实现重发策略
+	//更新数据库
+	UpdateStatus();
 	return 0;
 }
 
@@ -392,6 +402,15 @@ int TopupImpl::CreateTmallOrder(){
 	chargeBusiness->Init(m_conn);
 	int ret = chargeBusiness->CreateTmallOrder(m_topup_info, m_topup_info->channels[0]);
 	delete chargeBusiness;
+	string topup_data;
+	serialize_topupinfo(m_topup_info, topup_data);
+	RedisClient *redis = new RedisClient();
+	if(redis->connect(GlobalConfig::Instance()->s_redis_ip, GlobalConfig::Instance()->n_redis_port)){
+		if(!redis->setex(m_topup_info->qs_info.tbOrderNo, topup_data, 3600)){
+			TP_WRITE_ERR(m_topup_info, "[CreateTmallOrder] setex %s failed", m_topup_info->qs_info.tbOrderNo.c_str());	
+		}
+	}
+	delete redis;
 	return ret;
 }
 
@@ -426,4 +445,15 @@ bool TopupImpl::CheckSign(){
 		return false;
 	}
 	return true;	
+}
+
+int TopupImpl::UpdateStatus(){
+	ChargeBusiness *chargeBusiness = new ChargeBusiness();
+	if(!chargeBusiness){
+		return -1;
+	}
+	chargeBusiness->Init(m_conn);
+	int ret = chargeBusiness->UpdateOrderStatus(m_topup_info);
+	delete chargeBusiness;
+	return ret;
 }

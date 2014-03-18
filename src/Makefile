@@ -11,14 +11,16 @@ SOURCES = BaseBusiness.cpp \
 		  TopupService.cpp \
 		  HttpClient.cpp \
 		  TopupUtils.cpp \
-		  ChargeBusiness.cpp
+		  ChargeBusiness.cpp 
 
 OBJS = $(SOURCES:.cpp=.o)
 THRIFT_OBJS = $(INTERFACE_DIR)/Topup.o \
 			  $(INTERFACE_DIR)/TopupInterface_types.o  \
 			  $(INTERFACE_DIR)/TopupInterface_constants.o
 
-UTILS_OBJS = HttpClient.o
+HTTP_OBJS = HttpClient.o
+
+UTILS_OBJS = TopupUtils.o
 
 TOPUP_OBJS = TopupImpl.o \
 			 TopupUtils.o \
@@ -26,7 +28,8 @@ TOPUP_OBJS = TopupImpl.o \
 			 $(INTERFACE_DIR)/TopupInterface_types.o \
 			 ChannelSLS.o \
 			 ChargeBusiness.o \
-			 BaseBusiness.o 
+			 BaseBusiness.o \
+			 RedisClient.o 
 
 CUSTOMER_OBJS = TopupCustomer.o \
 			 TopupUtils.o \
@@ -68,20 +71,25 @@ oracle_client: oracle.o
 	$(CXX) $(CPPFLAG) $(INCS) $(LIBS) -Wl,--rpath -Wl,/data/occi/lib  -locci  -lclntsh -lnnz11 -lglog -lpthread -o $@  $<
 
 $(TOPUP_SO): $(TOPUP_OBJS)
-	$(CXX) -g -fPIC -shared  -o $@ $^
+	$(CXX) -g -fPIC -shared -o $@ $^
 
 $(CUSTOMER_SO): $(CUSTOMER_OBJS)
 	$(CXX) -g -fPIC -shared  -o $@ $^
 
 topup_server: $(OBJS) TopupServer.o
-	$(CXX) $(CPPFLAG) $(INCS) $(LIBS)  TopupServer.o $(OBJS) $(THRIFT_OBJS) -Wl,--rpath -Wl,/data/occi/lib -locci -lclntsh -lnnz11 -lglog -liniparser -lcurl -lthrift -lthriftnb -lpthread -levent -lcommon -o $@
+	$(CXX) $(CPPFLAG) $(INCS) $(LIBS)  TopupServer.o $(OBJS) $(THRIFT_OBJS) -Wl,--rpath -Wl,/data/occi/lib \
+		-locci -lclntsh -lnnz11 -lglog -liniparser -lcurl -lthrift -lthriftnb -lpthread \
+	   	-levent -lcommon -ltinyxml -ljson_linux-gcc-4.1.2_libmt -lhiredis -o $@
 
-topup.fcg: $(UTILS_OBJS) TopupFcgi.o
-	$(CXX) $(CPPFLAG) $(INCS) $(LIBS)  TopupFcgi.o $(UTILS_OBJS) $(THRIFT_OBJS) -lfcgi -Wl,--rpath -Wl,/data/occi/lib -lcurl -lthrift -lthriftnb -lpthread -levent -o $@
+topup.fcg: $(HTTP_OBJS) TopupFcgi.o
+	$(CXX) $(CPPFLAG) $(INCS) $(LIBS)  TopupFcgi.o $(HTTP_OBJS) $(THRIFT_OBJS) \
+		-lfcgi -Wl,--rpath -Wl,/data/occi/lib -lcurl -lthrift -lthriftnb -lpthread -levent -ltinyxml -ljson_linux-gcc-4.1.2_libmt -o $@
 
 
 test_httpclient: HttpClient.o Test_HttpClient.o
-	$(CXX) $(CPPFLAG) $(INCS) $(LIBS)  Test_HttpClient.o HttpClient.o ConnectionManager.o GlobalConfig.o -Wl,--rpath -Wl,/data/occi/lib -lcurl -liconv -liniparser -lcommon -lglog -locci -lclntsh -lnnz11 -o $@
+	$(CXX) $(CPPFLAG) $(INCS) $(LIBS)  Test_HttpClient.o HttpClient.o ConnectionManager.o GlobalConfig.o -Wl,--rpath -Wl,/data/occi/lib \
+	   	-lcurl -liconv -liniparser -lcommon -lglog -locci -lclntsh -lnnz11 -ltinyxml -ljson_linux-gcc-4.1.2_libmt -lhiredis -o $@
 
 clean:
 	rm *.o -f
+	rm oracle_client topup_server topup.fcg $(TEST) $(TOPUP_SO) $(CUSTOMER_SO)
