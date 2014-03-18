@@ -55,7 +55,7 @@
 	}\
 }
 
-enum OrderStatus{CREATE = 0, UNDERWAY, SUCESS, FAILED};
+enum OrderStatus{CREATE = 0, UNDERWAY, SUCESS, FAILED, CANCELED};
 
 typedef struct ChannelInfo{
 	int channelId;			//渠道ID
@@ -115,6 +115,7 @@ typedef struct TopupInfo{
 	struct timeval start_time;			//开始处理时间
 	OrderStatus status;
 	string update_time;
+	int notify;
 }TopupInfo;
 
 

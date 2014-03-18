@@ -15,6 +15,7 @@ public:
 	~RedisClient();
 	bool connect(string host, int port);
 	bool setex(string key, string value, int seconds);
+	bool get(string key, string &value);
 	bool select(int db);
 	bool delkey(string key);
 

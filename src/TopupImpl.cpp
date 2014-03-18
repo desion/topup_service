@@ -175,6 +175,8 @@ int TopupImpl::TmallCharge(string &response){
 	int create_status = CreateTmallOrder();
 	//TODO 返回结果
 	MakeSuccessReplay(SUNDERWAY, response);
+	//设置通知状态
+	m_topup_info->notify = 0;
 	return 0;
 }
 
@@ -186,6 +188,7 @@ int TopupImpl::TmallQuery(string &response){
 	string coopId;			//商家编号
 	string tbOrderNo;		//淘宝的订单号
 	string sign;			//签名字符串
+
 	if(m_topup_info->qs_info.coopId.empty()){
         MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
         TP_WRITE_LOG(m_topup_info, "\t(TmallQuery) NO coopId %s", LAKE_PARAM_ERR);
@@ -206,7 +209,8 @@ int TopupImpl::TmallQuery(string &response){
         MakeErrReplay(SIGN_NOMATCH_ERR, SORDER_FAILED, response);
         TP_WRITE_LOG(m_topup_info, "\t(TmallQuery) sign error %s", SIGN_NOMATCH_ERR);
         return 4;
-    }		
+    }
+	TP_WRITE_LOG(m_topup_info, "\t(TmallQuery) orderId: %s", m_topup_info->qs_info.tbOrderNo.c_str());	
 	int ret = QueryOrder();
    	if(ret == 1){
 		switch(m_topup_info->status){
@@ -403,9 +407,12 @@ int TopupImpl::CreateTmallOrder(){
 	int ret = chargeBusiness->CreateTmallOrder(m_topup_info, m_topup_info->channels[0]);
 	delete chargeBusiness;
 	string topup_data;
+	//序列化充值信息
 	serialize_topupinfo(m_topup_info, topup_data);
+	//充值信息同步到redis
 	RedisClient *redis = new RedisClient();
 	if(redis->connect(GlobalConfig::Instance()->s_redis_ip, GlobalConfig::Instance()->n_redis_port)){
+		redis->select(1);
 		if(!redis->setex(m_topup_info->qs_info.tbOrderNo, topup_data, 3600)){
 			TP_WRITE_ERR(m_topup_info, "[CreateTmallOrder] setex %s failed", m_topup_info->qs_info.tbOrderNo.c_str());	
 		}
@@ -415,10 +422,28 @@ int TopupImpl::CreateTmallOrder(){
 }
 
 int TopupImpl::QueryOrder(){
-	ChargeBusiness *chargeBusiness = new ChargeBusiness();
-	chargeBusiness->Init(m_conn);
-	int ret = chargeBusiness->QueryOrder(m_topup_info);
-	delete chargeBusiness;
+	RedisClient *redis = new RedisClient();
+	bool redis_status = false;
+	int ret = 0;
+	if(redis->connect(GlobalConfig::Instance()->s_redis_ip, GlobalConfig::Instance()->n_redis_port)){
+		string topup_data;
+		redis->select(1);
+		redis_status = redis->get(m_topup_info->qs_info.tbOrderNo, topup_data);
+		if(redis_status){
+			//解析json	
+			Json::Reader reader;
+			Json::Value root;
+			reader.parse(topup_data, root);
+			m_topup_info->status = (OrderStatus)root["status"].asInt();
+			ret = 1;
+		}else{
+			ChargeBusiness *chargeBusiness = new ChargeBusiness();
+			chargeBusiness->Init(m_conn);
+			ret = chargeBusiness->QueryOrder(m_topup_info);
+			delete chargeBusiness;
+		}
+	}
+	delete redis;
 	return ret;
 }
 

@@ -89,6 +89,7 @@ int ChargeBusiness::CreateTmallOrder(TopupInfo *topupInfo, ChannelInfo &channelI
 			return -2;
 		}
 		string systemNo = lexical_cast<string>(sysNo);
+		topupInfo->qs_info.coopOrderNo = systemNo;
 		stmt->setString(5, systemNo);
 		stmt->setString(6, systemNo);
 		stmt->setString(7, topupInfo->qs_info.tbOrderNo);

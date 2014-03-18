@@ -92,3 +92,26 @@ bool RedisClient::delkey(string key){
     freeReplyObject(reply);
     return true;	
 }
+
+bool RedisClient::get(string key, string& value){
+	int len = 0;
+	len = snprintf(cmd, CMD_LENGTH, "GET %s", key.c_str());
+	cmd[len] = '\0';
+	redisReply *reply = (redisReply*)redisCommand(redis, cmd);
+    if(reply == NULL){
+	    fprintf(stderr, "reply is NULL");
+		return false;
+    }
+    if( !(reply->type == REDIS_REPLY_STRING))  
+    {  
+        fprintf(stderr, "Failed to execute command[%s]\n",cmd);  
+        freeReplyObject(reply);
+        return false;
+    }
+    fprintf(stderr, "RedisClient::get[%s]\n",reply->str);  
+
+	value = reply->str;
+    freeReplyObject(reply);
+    return true;	
+}
+	

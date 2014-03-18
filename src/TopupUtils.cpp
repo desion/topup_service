@@ -182,6 +182,8 @@ void serialize_topupinfo(TopupInfo* topup_info, string &strout){
 	root["value"] = topup_info->qs_info.value;
 	root["op"] = topup_info->qs_info.op;
 	root["province"] = topup_info->qs_info.province;
+	root["status"] = topup_info->status;
+	root["creteTime"] = (uint32_t)time(NULL);
 	//strout = root.toStyledString();
 	Json::FastWriter writer;
 	strout = writer.write(root);
