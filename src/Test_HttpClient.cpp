@@ -99,7 +99,7 @@ bool TEST_NORMAL_CHARGE()
 	len += sprintf(encode_query + len,"&sign=%s", md5);
 	encode_query[len] = '\0';
 	printf("正确url:%s\n", encode_query);
-	httpclent_perform("http://127.0.0.1/fcgi-bin/topup.fcg", encode_query, &debug, NULL);
+	httpclent_perform("http://127.0.0.1/tmall/topup.fcg", encode_query, &debug, NULL);
 	
 	return true;
 }
@@ -108,25 +108,26 @@ bool TEST_LAKEPARAM_CHARGE()
 {
 	printf("--------------------缺少参数测试------------------\n");
 	string query = "coopId=928707139&tbOrderNo=20140303231300&cardId=101&cardNum=0&customer=13693555577&sum=99.02&notifyUrl=http://123.126.54.32/notify.do&sign=123456789&tbOrderSnap=99.02|101|测试样例|测试加密";
-	httpclent_perform("http://127.0.0.1/fcgi-bin/topup.fcg", query.c_str(), &debug, NULL);
+	const char* url = "http://127.0.0.1/tmall/topup.fcg";
+	httpclent_perform(url, query.c_str(), &debug, NULL);
 	query = "tbOrderNo=20140303231300&cardId=101&cardNum=1&customer=13693555577&sum=99.02&notifyUrl=http://123.126.54.32/notify.do&sign=123456789&tbOrderSnap=99.02|101|测试样例|测试加密";
-	httpclent_perform("http://127.0.0.1/fcgi-bin/topup.fcg", query.c_str(), &debug, NULL);
+	httpclent_perform(url, query.c_str(), &debug, NULL);
 	query = "coopId=928707139&cardId=101&cardNum=1&customer=13693555577&sum=99.02&notifyUrl=http://123.126.54.32/notify.do&sign=123456789&tbOrderSnap=99.02|101|测试样例|测试加密";
-	httpclent_perform("http://127.0.0.1/fcgi-bin/topup.fcg", query.c_str(), &debug, NULL);
+	httpclent_perform(url, query.c_str(), &debug, NULL);
 	query = "coopId=928707139&tbOrderNo=20140303231300&cardNum=1&customer=13693555577&sum=99.02&notifyUrl=http://123.126.54.32/notify.do&sign=123456789&tbOrderSnap=99.02|101|测试样例|测试加密";
-	httpclent_perform("http://127.0.0.1/fcgi-bin/topup.fcg", query.c_str(), &debug, NULL);
+	httpclent_perform(url, query.c_str(), &debug, NULL);
 	query = "coopId=928707139&tbOrderNo=20140303231300&cardId=101&customer=13693555577&sum=99.02&notifyUrl=http://123.126.54.32/notify.do&sign=123456789&tbOrderSnap=99.02|101|测试样例|测试加密";
-	httpclent_perform("http://127.0.0.1/fcgi-bin/topup.fcg", query.c_str(), &debug, NULL);
+	httpclent_perform(url, query.c_str(), &debug, NULL);
 	query = "coopId=928707139&tbOrderNo=20140303231300&cardId=101&cardNum=1&sum=99.02&notifyUrl=http://123.126.54.32/notify.do&sign=123456789&tbOrderSnap=99.02|101|测试样例|测试加密";
-	httpclent_perform("http://127.0.0.1/fcgi-bin/topup.fcg", query.c_str(), &debug, NULL);
+	httpclent_perform(url, query.c_str(), &debug, NULL);
 	query = "coopId=928707139&tbOrderNo=20140303231300&cardId=101&cardNum=1&customer=13693555577&notifyUrl=http://123.126.54.32/notify.do&sign=123456789&tbOrderSnap=99.02|101|测试样例|测试加密";
-	httpclent_perform("http://127.0.0.1/fcgi-bin/topup.fcg", query.c_str(), &debug, NULL);
+	httpclent_perform(url, query.c_str(), &debug, NULL);
 	query = "coopId=928707139&tbOrderNo=20140303231300&cardId=101&cardNum=1&customer=13693555577&sum=99.02&sign=123456789&tbOrderSnap=99.02|101|测试样例|测试加密";
-	httpclent_perform("http://127.0.0.1/fcgi-bin/topup.fcg", query.c_str(), &debug, NULL);
+	httpclent_perform(url, query.c_str(), &debug, NULL);
 	query = "coopId=928707139&tbOrderNo=20140303231300&cardId=101&cardNum=1&customer=13693555577&sum=99.02&notifyUrl=http://123.126.54.32/notify.do&tbOrderSnap=99.02|101|测试样例|测试加密";
-	httpclent_perform("http://127.0.0.1/fcgi-bin/topup.fcg", query.c_str(), &debug, NULL);
+	httpclent_perform(url, query.c_str(), &debug, NULL);
 	query = "coopId=928707139&tbOrderNo=20140303231300&cardId=101&cardNum=1&customer=13693555577&sum=99.02&notifyUrl=http://123.126.54.32/notify.do&sign=123456789";
-	httpclent_perform("http://127.0.0.1/fcgi-bin/topup.fcg", query.c_str(), &debug, NULL);
+	httpclent_perform(url, query.c_str(), &debug, NULL);
 	return true;
 }
 
@@ -163,7 +164,7 @@ bool TEST_QUERY_ORDER(){
 	len = 0;
 	len += sprintf(signStr + len,"%s", query_ori);
 	len += sprintf(signStr + len,"&sign=%s", md5);
-	httpclent_perform("http://127.0.0.1/fcgi-bin/query.fcg", signStr, &debug, NULL);
+	httpclent_perform("http://127.0.0.1/tmall/query.fcg", signStr, &debug, NULL);
 	return true;
 }
 

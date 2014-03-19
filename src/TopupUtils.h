@@ -55,7 +55,7 @@
 	}\
 }
 
-enum OrderStatus{CREATE = 0, UNDERWAY, SUCESS, FAILED, CANCELED};
+enum OrderStatus{CREATE = 0, UNDERWAY, SUCCESS, FAILED, CANCELED};
 
 typedef struct ChannelInfo{
 	int channelId;			//渠道ID

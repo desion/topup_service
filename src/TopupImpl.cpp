@@ -42,6 +42,8 @@ int TopupImpl::Init(TopupInfo* topup_info)
 #define PRODUCT_MAIN_ERR	"0304"
 #define SIGN_NOMATCH_ERR	"0102"
 #define REQUEST_FAILED_ERR	"0104"
+#define SAME_ORDER_EERR		"0301"
+#define INVALID_PRODUCT_ERR	"0302"
 
 //处理FCGI的请求，根据请求的URI判断如何处理
 int TopupImpl::HandleRequest(const TopupRequest& request, string &result){
@@ -93,17 +95,7 @@ int TopupImpl::TmallCharge(string &response){
 	//TODO 验证参数的正确性
 	//http://host:port/resource?coopId=xxx&tbOrderNo=xxx&cardId=xxx&cardNum=xxx&customer=xxx&sum=xxx&gameId=xxx&section1=xxx&section2=xxx&notifyUrl=xxx&sign=xxx&version=xxx
 	
-	map<string, string>::iterator it;
-	string coopId;			//商家编号
-	string tbOrderNo;		//淘宝的订单号
-	string cardId;			//充值卡商品编号
-	int cardNum;			//充值卡数量
-	string customer;		//手机号码
 	double sum;				//本次充值总金额
-	string tbOrderSnap;		//商品信息快照
-	string notifyUrl;		//异同通知地址
-	string sign;			//签名字符串
-	string version;			//版本
 
 	if(m_topup_info->qs_info.coopId.empty()){
 		MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
@@ -151,21 +143,35 @@ int TopupImpl::TmallCharge(string &response){
 		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) sign error %s", SIGN_NOMATCH_ERR);
 		return 4;
 	}
+	int ret = QueryOrder();
+	if(ret > 0){
+		MakeErrReplay(SAME_ORDER_EERR, SORDER_FAILED, response);
+		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) same order error %s", SAME_ORDER_EERR);	
+		return 5;
+	}
+
 	//TODO 选择正确的产品，所有产品信息加入缓存，商品更新发送通知，重新加载缓存
 	int check_product = CheckProduct();
 	TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) PRODUCT:%d v:%d o:%d p:%d",check_product, m_topup_info->qs_info.value,
 			        m_topup_info->qs_info.op ,m_topup_info->qs_info.province);
 	if(check_product == 2){
 		MakeErrReplay(NO_PRODUCT_ERR, SORDER_FAILED, response);
+		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) no such product error %s", NO_PRODUCT_ERR);	
 		return 2;
 	}else if(check_product == 1){
 		MakeErrReplay(PRODUCT_MAIN_ERR, SORDER_FAILED, response);
+		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) product mainten error %s", PRODUCT_MAIN_ERR);	
+		return 3;
+	}else if(check_product == 3){
+		MakeErrReplay(INVALID_PRODUCT_ERR, SORDER_FAILED, response);
+		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) product sum invalid %s", INVALID_PRODUCT_ERR);	
 		return 3;
 	}
 	//TODO 选择最优的渠道，渠道信息同样加入缓存，信息更新，重新加载
 	int selectChannel = SelectBestChannel();
 	if(selectChannel <= 0){
 		MakeErrReplay(PRODUCT_MAIN_ERR, SORDER_FAILED, response);
+		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) select channel err %s", PRODUCT_MAIN_ERR);	
 		return 3;
 	}
 	TP_WRITE_LOG(m_topup_info, "\tCHANNEL:%d id:%d name:%s dis:%f pri:%d int:%s",selectChannel,
@@ -173,6 +179,11 @@ int TopupImpl::TmallCharge(string &response){
 			m_topup_info->channels[0].priority, m_topup_info->channels[0].interfaceName.c_str());
 	//TODO 建立订单，订单创建采用append模式，快速，采用按天分表模式，保留一个月的数据
 	int create_status = CreateTmallOrder();
+	if(create_status < 0){
+		MakeErrReplay(PRODUCT_MAIN_ERR, SORDER_FAILED, response);
+		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) fail to create order %s", PRODUCT_MAIN_ERR);
+		return 5;	
+	}
 	//TODO 返回结果
 	MakeSuccessReplay(SUNDERWAY, response);
 	//设置通知状态
@@ -185,9 +196,6 @@ int TopupImpl::TmallCharge(string &response){
 int TopupImpl::TmallQuery(string &response){
 	//验证参数的正确性
 	map<string, string>::iterator it;
-	string coopId;			//商家编号
-	string tbOrderNo;		//淘宝的订单号
-	string sign;			//签名字符串
 
 	if(m_topup_info->qs_info.coopId.empty()){
         MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
@@ -214,14 +222,16 @@ int TopupImpl::TmallQuery(string &response){
 	int ret = QueryOrder();
    	if(ret == 1){
 		switch(m_topup_info->status){
-			case CREATE:
+			case UNDERWAY:
 				MakeSuccessReplay(SUNDERWAY, response);	
 				break;
 			case FAILED:
-				MakeSuccessReplay(SUNDERWAY, response);	
+				MakeSuccessReplay(SFAILED, response);	
 				break;
+			case SUCCESS:
+				MakeSuccessReplay(SSUCCESS, response);
 			default:
-				MakeSuccessReplay(SUNDERWAY, response);
+				MakeErrReplay(REQUEST_FAILED_ERR, SREQUEST_FAILED, response);
 				break;
 		}
 	}else{
@@ -268,7 +278,7 @@ int TopupImpl::TmallNotify(string &response){
 		char md5str[33] = {0};
 		int len = 0;
 		url_encode(m_topup_info->qs_info.tbOrderSnap.c_str(), m_topup_info->qs_info.tbOrderSnap.length(), snap_encode, 256);
-		if(m_topup_info->status == SUCESS){
+		if(m_topup_info->status == SUCCESS){
 			string ts;
 			len += sprintf(buf,
 					"coopId=%s&tbOrderNo=%s&coopOrderNo=%s&coopOrderStatus=SUCCESS&coopOrderSnap=%s&coopOrderSuccessTime=%s",
@@ -361,7 +371,10 @@ int TopupImpl::MakeSuccessReplay(const char* status, string &result){
 	result = buf;
 	return len;
 }
-
+// ret = 0 正常
+// ret = 1 出错异常
+// ret = 2 没有相应的产品
+// ret = 3 购买数量不合法
 int TopupImpl::CheckProduct(){
 	printf("CheckProduct.....\n");
 
@@ -370,6 +383,10 @@ int TopupImpl::CheckProduct(){
 	Product m_product;
 	int ret =  chargeBusiness->GetTmallProduct(m_topup_info->qs_info.cardId, m_product);
 	if(ret == 0){
+		int total_value = m_product.price * m_topup_info->qs_info.cardNum;
+		if(total_value > 500){
+			return 3;
+		}
 		m_topup_info->qs_info.value = m_product.price;
 		m_topup_info->qs_info.op = m_product.op;
 		m_topup_info->qs_info.province = m_product.provinceId;

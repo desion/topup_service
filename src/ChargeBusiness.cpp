@@ -152,7 +152,7 @@ int ChargeBusiness::UpdateOrderStatus(TopupInfo *topupInfo){
 	int ret = 0;
 	try{
 		int status = 0;
-		if(topupInfo->status == SUCESS){
+		if(topupInfo->status == SUCCESS){
 			status = 1;
 		}else if(topupInfo->status == FAILED){
 			status = 2;

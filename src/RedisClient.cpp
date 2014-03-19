@@ -114,4 +114,43 @@ bool RedisClient::get(string key, string& value){
     freeReplyObject(reply);
     return true;	
 }
+
+bool RedisClient::enqueue(const char* queue, const char* value){
+	int len = 0;
+	len = snprintf(cmd, CMD_LENGTH, "LPUSH %s %s", queue, value);
+	cmd[len] = '\0';
+	redisReply *reply = (redisReply*)redisCommand(redis, cmd);
+    if(reply == NULL){
+	    fprintf(stderr, "[enqueue] reply is NULL");
+		return false;
+    }
+    if(reply->type == REDIS_REPLY_STATUS && strcasecmp(reply->str,"OK")==0)  
+    {  
+        fprintf(stderr, "Failed to execute command[%s]\n",cmd);  
+        freeReplyObject(reply);
+        return false;
+    }
+    freeReplyObject(reply);
+    return true;	
+}
+
+bool RedisClient::dequeue(const char* queue, string &value){
+	int len = 0;
+	len = snprintf(cmd, CMD_LENGTH, "RPOP %s", queue);
+	cmd[len] = '\0';
+	redisReply *reply = (redisReply*)redisCommand(redis, cmd);
+    if(reply == NULL){
+	    fprintf(stderr, "[dequeue] reply is NULL");
+		return false;
+    }
+    if( !(reply->type == REDIS_REPLY_STRING))  
+    {  
+        fprintf(stderr, "Failed to execute command[%s]\n",cmd);  
+        freeReplyObject(reply);
+        return false;
+    }
+	value = reply->str;
+    freeReplyObject(reply);
+    return true;	
+}
 	

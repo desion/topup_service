@@ -18,6 +18,8 @@ public:
 	bool get(string key, string &value);
 	bool select(int db);
 	bool delkey(string key);
+	bool enqueue(const char* queue, const char* value);
+	bool dequeue(const char* queue, string &value);
 
 private:
 	redisContext *redis;
