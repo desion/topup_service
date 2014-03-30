@@ -13,6 +13,7 @@ using namespace std;
 
 void BaseBusiness::HandleException(std::exception &e){
 	errors.push_back(string("Exception:") + e.what());
+	fprintf(stderr, "[Exception] %s\n", e.what());
 }
 
 void BaseBusiness::Finish(){

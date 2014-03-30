@@ -13,6 +13,11 @@ using namespace std;
 using namespace  ::topupinterface;
 using namespace boost;
 
+int charge_count;
+pthread_mutex_t charge_lock;
+pthread_cond_t charge_cond;
+
+TopupServer *P_TPServer;
 TopupImpl::TopupImpl(){
 	//m_topup_info = new TopupInfo();
 }
@@ -71,7 +76,14 @@ int TopupImpl::HandleRequest(const TopupRequest& request, string &result){
 	//TP_WRITE_LOG(m_topup_info, "\t{%s}", m_interface);
 	if(strcmp(m_interface + 1, "topup.fcg") == 0){
 		//调用充值接口
-		TmallCharge(result);
+		if(TmallCharge(result) == 0){
+			pthread_mutex_lock(&charge_lock);
+			if(charge_count == 0){
+				pthread_cond_signal(&charge_cond);
+			}
+			charge_count++;
+			pthread_mutex_unlock(&charge_lock);
+		}
 	}else if(strcmp(m_interface + 1, "query.fcg") == 0){
 		//调用查询订单查询接口
 		printf("URI:%s\n", uri);
@@ -84,10 +96,14 @@ int TopupImpl::HandleRequest(const TopupRequest& request, string &result){
 #ifdef DEBUG
 	map<string, string>::iterator it = map_entitys.begin();
 	for(;it != map_entitys.end(); ++it){
-			printf("key:%s\tvalue:%s\n", it->first.c_str(), it->second.c_str());
+		printf("key:%s\tvalue:%s\n", it->first.c_str(), it->second.c_str());
 	}
 #endif
 	return 0;
+}
+
+int TopupImpl::Notify(){
+	return 0;	
 }
 
 ///充值接口用于天猫和下游订购用户
@@ -137,12 +153,13 @@ int TopupImpl::TmallCharge(string &response){
 		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) NO sign %s", LAKE_PARAM_ERR);
 		return 1;
 	}
-
+	//验证加密
 	if(!CheckSign()){
 		MakeErrReplay(SIGN_NOMATCH_ERR, SORDER_FAILED, response);
 		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) sign error %s", SIGN_NOMATCH_ERR);
 		return 4;
 	}
+	//验证重复
 	int ret = QueryOrder();
 	if(ret > 0){
 		MakeErrReplay(SAME_ORDER_EERR, SORDER_FAILED, response);
@@ -186,6 +203,7 @@ int TopupImpl::TmallCharge(string &response){
 	}
 	//TODO 返回结果
 	MakeSuccessReplay(SUNDERWAY, response);
+	
 	//设置通知状态
 	m_topup_info->notify = 0;
 	return 0;
@@ -417,27 +435,44 @@ int TopupImpl::SelectBestChannel(){
 	return 0;
 }
 
+// ret = 0 正常
+// ret = -1 异常
+// ret = -2 生成sysno异常
+// ret = -3 生成时间异常
 int TopupImpl::CreateTmallOrder(){
-	printf("CreateTmallOrder.....\n");
 	ChargeBusiness *chargeBusiness = new ChargeBusiness();
 	chargeBusiness->Init(m_conn);
 	int ret = chargeBusiness->CreateTmallOrder(m_topup_info, m_topup_info->channels[0]);
+	if(ret != 0){
+		TP_WRITE_ERR(m_topup_info, "#%d [CreateTmallOrder] ChargeBusiness CreateTmallOrder fail:%d\n",
+				m_topup_info->seqid, ret);	
+		if(chargeBusiness->HasError()){
+			 vector<string> errors = chargeBusiness->GetErrors();
+			 write_err_msg(m_topup_info, errors);                                                                                           }
+	}
 	delete chargeBusiness;
+	/*
 	string topup_data;
 	//序列化充值信息
 	serialize_topupinfo(m_topup_info, topup_data);
-	//充值信息同步到redis
+	//充值信息同步到redis,进入处理队列
 	RedisClient *redis = new RedisClient();
 	if(redis->connect(GlobalConfig::Instance()->s_redis_ip, GlobalConfig::Instance()->n_redis_port)){
 		redis->select(1);
 		if(!redis->setex(m_topup_info->qs_info.tbOrderNo, topup_data, 3600)){
-			TP_WRITE_ERR(m_topup_info, "[CreateTmallOrder] setex %s failed", m_topup_info->qs_info.tbOrderNo.c_str());	
+			TP_WRITE_ERR(m_topup_info, "#%d [CreateTmallOrder] setex %s failed\n",m_topup_info->seqid, m_topup_info->qs_info.tbOrderNo.c_str());	
+		}
+		if(!redis->enqueue("underway", topup_data.c_str())){
+			TP_WRITE_ERR(m_topup_info, "#%d [CreateTmallOrder] enqueue %s failed\n",m_topup_info->seqid, m_topup_info->qs_info.tbOrderNo.c_str());	
 		}
 	}
 	delete redis;
+	*/
 	return ret;
 }
 
+//ret = 0 没找到订单
+//ret = 1 找到订单
 int TopupImpl::QueryOrder(){
 	RedisClient *redis = new RedisClient();
 	bool redis_status = false;
@@ -452,14 +487,19 @@ int TopupImpl::QueryOrder(){
 			Json::Value root;
 			reader.parse(topup_data, root);
 			m_topup_info->status = (OrderStatus)root["status"].asInt();
-			ret = 1;
-		}else{
-			ChargeBusiness *chargeBusiness = new ChargeBusiness();
-			chargeBusiness->Init(m_conn);
-			ret = chargeBusiness->QueryOrder(m_topup_info);
-			delete chargeBusiness;
+			//m_topup_info->qs_info.tbOrderNo = root["tbOrderNo"].asString();
+		    //m_topup_info->qs_info.coopOrderNo = rs->getString(2);
+		    //m_topup_info->status = (OrderStatus)rs->getInt(3);
+		    //string ts = rs->getString(4);
+		    //trans_time(ts, m_topup_info->update_time);
+			delete redis;
+			return 1;
 		}
 	}
+	ChargeBusiness *chargeBusiness = new ChargeBusiness();
+	chargeBusiness->Init(m_conn);
+	ret = chargeBusiness->QueryOrder(m_topup_info);
+	delete chargeBusiness;
 	delete redis;
 	return ret;
 }

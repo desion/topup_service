@@ -58,6 +58,36 @@ bool GlobalConfig::Init(const char* confPath){
 	char *p_error_path = iniparser_getstring(ini_dict, "COMMON:ERRORS",NULL);
 	CHECKNULL(p_error_path, "COMMON:ERRORS IS NULL");
 	
+	p_sls_interface = iniparser_getstring(ini_dict, "CHANNEL:SLS_INTERFACE",NULL);
+	CHECKNULL(p_sls_interface, "CHANNEL:SLS_INTERFACE IS NULL");
+	p_sls_query_url = iniparser_getstring(ini_dict, "CHANNEL:SLS_QUERY",NULL);
+	CHECKNULL(p_sls_query_url, "CHANNEL:SLS_QUERY IS NULL");
+	p_sls_charge_url = iniparser_getstring(ini_dict, "CHANNEL:SLS_CHARGE",NULL);
+	CHECKNULL(p_sls_charge_url, "CHANNEL:SLS_CHARGE IS NULL");
+	p_sls_balance_url = iniparser_getstring(ini_dict, "CHANNEL:SLS_BALANCE",NULL);
+	CHECKNULL(p_sls_balance_url, "CHANNEL:SLS_BALANCE IS NULL");
+
+	p_llww_interface = iniparser_getstring(ini_dict, "CHANNEL:LLWW_INTERFACE",NULL);
+	CHECKNULL(p_llww_interface, "CHANNEL:LLWW_INTERFACE IS NULL");
+	p_llww_query_url = iniparser_getstring(ini_dict, "CHANNEL:LLWW_QUERY",NULL);
+	CHECKNULL(p_llww_query_url, "CHANNEL:LLWW_QUERY IS NULL");
+	p_llww_charge_url = iniparser_getstring(ini_dict, "CHANNEL:LLWW_CHARGE",NULL);
+	CHECKNULL(p_llww_charge_url, "CHANNEL:LLWW_CHARGE IS NULL");
+	p_llww_balance_url = iniparser_getstring(ini_dict, "CHANNEL:LLWW_BALANCE",NULL);
+	CHECKNULL(p_llww_balance_url, "CHANNEL:LLWW_BALANCE IS NULL");
+	
+	p_yeepay_interface = iniparser_getstring(ini_dict, "CHANNEL:YEEPAY_INTERFACE",NULL);
+	CHECKNULL(p_error_path, "CHANNEL:YEEPAY_INTERFACE IS NULL");
+	p_yeepay_charge_url = iniparser_getstring(ini_dict, "CHANNEL:YEEPAY_QUERY",NULL);
+	CHECKNULL(p_yeepay_charge_url, "CHANNEL:YEEPAY_QUERY IS NULL");
+	p_yeepay_charge_url = iniparser_getstring(ini_dict, "CHANNEL:YEEPAY_CHARGE",NULL);
+	CHECKNULL(p_yeepay_charge_url, "CHANNEL:YEEPAY_CHARGE IS NULL");
+	p_yeepay_balance_url = iniparser_getstring(ini_dict, "CHANNEL:YEEPAY_BALANCE",NULL);
+	CHECKNULL(p_yeepay_balance_url, "CHANNEL:YEEPAY_BALANCE IS NULL");
+
+	n_charge_thread = iniparser_getint(ini_dict, "COMMON:CHARGE_THREAD", 5);
+	n_query_thread = iniparser_getint(ini_dict, "COMMON:QUERY_THREAD", 5);
+	n_notify_thread = iniparser_getint(ini_dict, "COMMON:NOTIFY_THREAD", 2);
 	FILE *fp = fopen(p_error_path, "r");
 	if(fp == NULL){
 		return false;

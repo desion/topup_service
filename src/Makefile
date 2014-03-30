@@ -11,7 +11,8 @@ SOURCES = BaseBusiness.cpp \
 		  TopupService.cpp \
 		  HttpClient.cpp \
 		  TopupUtils.cpp \
-		  ChargeBusiness.cpp 
+		  ChargeBusiness.cpp \
+		  RedisClient.cpp 
 
 OBJS = $(SOURCES:.cpp=.o)
 THRIFT_OBJS = $(INTERFACE_DIR)/Topup.o \
@@ -26,7 +27,6 @@ TOPUP_OBJS = TopupImpl.o \
 			 TopupUtils.o \
 			 HttpClient.o \
 			 $(INTERFACE_DIR)/TopupInterface_types.o \
-			 ChannelSLS.o \
 			 ChargeBusiness.o \
 			 BaseBusiness.o \
 			 RedisClient.o 
@@ -39,8 +39,14 @@ CUSTOMER_OBJS = TopupCustomer.o \
 			 ChargeBusiness.o \
 			 BaseBusiness.o 
 
+CHANNEL_OBJS = ChannelImpl.o \
+			   ChannelSLS.o \
+			   TopupUtils.o \
+			   HttpClient.o
+
 TOPUP_SO = topup.so 
 CUSTOMER_SO = customer.so
+CHANNEL_SO = channel.so
 
 
 
@@ -60,7 +66,7 @@ LIBS = -L../lib \
 
 TEST = test_httpclient
 
-all: oracle_client topup_server topup.fcg $(TEST) $(TOPUP_SO) $(CUSTOMER_SO)
+all: oracle_client topup_server topup.fcg $(TEST) $(TOPUP_SO) $(CUSTOMER_SO) $(CHANNEL_SO)
 
 
 .cpp.o:
@@ -75,6 +81,9 @@ $(TOPUP_SO): $(TOPUP_OBJS)
 
 $(CUSTOMER_SO): $(CUSTOMER_OBJS)
 	$(CXX) -g -fPIC -shared  -o $@ $^
+
+$(CHANNEL_SO): $(CHANNEL_OBJS)
+	$(CXX) -g -fPIC -shared -o $@ $^
 
 topup_server: $(OBJS) TopupServer.o
 	$(CXX) $(CPPFLAG) $(INCS) $(LIBS)  TopupServer.o $(OBJS) $(THRIFT_OBJS) -Wl,--rpath -Wl,/data/occi/lib \

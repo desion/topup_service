@@ -63,9 +63,23 @@ class TopupServer{
 		uint32_t seq_id;				//系统序列号，用于标记请求
 		pthread_mutex_t seq_lock;
 		LOG_HANDLE  service_log;		//日志文件句柄
+
 };
 
 extern TopupServer *P_TPServer;
+
+extern int charge_count;
+extern int query_count;
+extern int notify_count;
+
+extern pthread_mutex_t charge_lock;
+extern pthread_cond_t charge_cond;
+
+extern pthread_mutex_t query_lock;
+extern pthread_cond_t query_cond;
+
+extern pthread_mutex_t notify_lock;
+extern pthread_cond_t notify_cond;
 
 
 #endif //__TOPUP_SERVER_H

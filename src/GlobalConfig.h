@@ -40,11 +40,33 @@ class GlobalConfig{
 		const char* private_key;
 		const char* coopid;	
 
+		//手拉手
+		char *p_sls_interface;
+		char *p_sls_query_url;
+		char *p_sls_charge_url;
+		char *p_sls_balance_url;
+
+		//来来往往
+		char *p_llww_interface;
+		char *p_llww_query_url;
+		char *p_llww_charge_url;
+		char *p_llww_balance_url;
+
+		//易宝
+		char *p_yeepay_interface;
+		char *p_yeepay_query_url;
+		char *p_yeepay_charge_url;
+		char *p_yeepay_balance_url;
+
 		string s_redis_ip;
 		int n_redis_port;
 		int n_redis_timeout;
 
 		map<string, string> errors;
+
+		int n_charge_thread;
+		int n_query_thread;
+		int n_notify_thread;
 
 	private:
 		static GlobalConfig m_global_config;

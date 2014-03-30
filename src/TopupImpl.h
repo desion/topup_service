@@ -36,6 +36,8 @@ class TopupImpl: public TopupBase{
 
 		//连接由主程序分配回收
 		int Init(TopupInfo* m_topup_info);
+
+		int Notify();
 	
 	//上行接口
 	protected:

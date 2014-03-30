@@ -49,7 +49,9 @@ bool TEST_NORMAL_CHARGE()
 {
 	printf("--------------------正常测试------------------\n");
 	map<string, string, cmpKeyAscii> entitys;
-	const char * query = "coopId=928707139&tbOrderNo=20140303231300&cardId=10001&cardNum=1&customer=13693555577&sum=99.02&notifyUrl=http://123.126.54.32/notify.do&tbOrderSnap=99.02|101|测试样例|测试加密";
+	char query[2048] = {0};
+	sprintf(query, "coopId=928707139&tbOrderNo=%d&cardId=10001&cardNum=1&customer=13693555577&sum=99.02&notifyUrl=http://123.126.54.32/notify.do&tbOrderSnap=99.02|101|测试样例|测试加密", (int)time(NULL));
+	//const char * query = "coopId=928707139&tbOrderNo=20140303231300&cardId=10001&cardNum=1&customer=13693555577&sum=99.02&notifyUrl=http://123.126.54.32/notify.do&tbOrderSnap=99.02|101|测试样例|测试加密";
 	char buf[2048];
 	char inbuf[2048] = {0};
 	char param[256] = {0};

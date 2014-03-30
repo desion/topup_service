@@ -43,9 +43,11 @@ int so_check_reload(SoBase *so){
 //加载so文件
 int so_load(SoBase *so){
     so->handle = LoadLibrary(so->filename);
+fprintf(stderr, "so_topup_reload %s\n", so->filename);
     if(so->handle == NULL){
        return -1;
     }
+fprintf(stderr, "so_topup_reload\n");
     return 0;
 }
 //卸载so
@@ -140,6 +142,7 @@ void write_err_msg(TopupInfo *topupInfo, vector<string>& errors){
     vector<string>::iterator it = errors.begin();
 	for(;it != errors.end();++it){	
 		TP_WRITE_ERR(topupInfo, "seqid:%d\t(SelectBestChannel)\t%s", topupInfo->seqid, it->c_str());
+		fprintf(stderr, "seqid:%d\t(SelectBestChannel)\t%s", topupInfo->seqid, it->c_str());
 	}
 }
 
@@ -184,6 +187,7 @@ void serialize_topupinfo(TopupInfo* topup_info, string &strout){
 	root["province"] = topup_info->qs_info.province;
 	root["status"] = topup_info->status;
 	root["creteTime"] = (uint32_t)time(NULL);
+	root["updateTime"] = (uint32_t)time(NULL);
 	//strout = root.toStyledString();
 	Json::FastWriter writer;
 	strout = writer.write(root);

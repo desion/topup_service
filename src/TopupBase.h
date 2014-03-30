@@ -23,9 +23,9 @@ class TopupBase{
 	public:
 		virtual ~TopupBase(){};
 		virtual int HandleRequest(const TopupRequest& request, string& result) = 0;
+		virtual int Notify() = 0;
 		virtual int Init(TopupInfo* m_topup_info) = 0;
 };
-
 
 typedef TopupBase* (*create_t)();
 typedef void (*destroy_t)(TopupBase*);

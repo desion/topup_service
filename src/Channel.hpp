@@ -41,4 +41,12 @@ class ChannelSLS : public Channel{
 		int Balance(TopupInfo *topup_info, double &balance);
 
 		int AcceptNotify(TopupInfo *topup_info, string &result);
+
+		static bool Init();
+		static string GetErrMsg(string code);
+	private:
+		static const char* key;
+		static const char* userid;
+		static const char* pwd;
+		static map<string, string> errors;
 };

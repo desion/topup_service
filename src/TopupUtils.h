@@ -87,23 +87,6 @@ typedef struct QsInfo{
 }QsInfo;
 
 typedef struct TopupInfo{
-	/*
-	string coopId;          //商家编号
-    string tbOrderNo;       //淘宝的订单号
-	uint64_t coopOrderNo;	//系统生成订单号
-    string cardId;          //充值卡商品编号
-    int cardNum;            //充值卡数量
-    string customer;        //手机号码
-    double sum;             //本次充值总金额
-    string tbOrderSnap;     //商品信息快照
-    string notifyUrl;       //异同通知地址
-    string sign;            //签名字符串
-    string version;         //版本
-	double price;			//单价
-	int value;				//面值
-	int op;					//运营商
-	int province;			//省份
-	*/
 	QsInfo qs_info;						//请求参数相关
 	vector<ChannelInfo> channels;		//最优渠道
 	Connection *conn;					//数据库连接
@@ -116,6 +99,11 @@ typedef struct TopupInfo{
 	OrderStatus status;
 	string update_time;
 	int notify;
+	int channelId;
+	string interfaceName;
+	int repeat;
+	string channelSname;
+	int channelIndex;
 }TopupInfo;
 
 

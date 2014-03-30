@@ -9,6 +9,8 @@
 #include "ChargeBusiness.h"
 #include "ConnectionManager.h"
 #include <boost/lexical_cast.hpp>
+#include "RedisClient.h"
+#include "GlobalConfig.h"
 using namespace std;
 using boost::lexical_cast;
 
@@ -86,6 +88,7 @@ int ChargeBusiness::CreateTmallOrder(TopupInfo *topupInfo, ChannelInfo &channelI
 		stmt->setInt(4, topupInfo->qs_info.value);
 		uint64_t sysNo = encode_orderno(topupInfo->qs_info.customer);
 		if(sysNo <= 0){
+			conn->terminateStatement(stmt);
 			return -2;
 		}
 		string systemNo = lexical_cast<string>(sysNo);
@@ -97,6 +100,7 @@ int ChargeBusiness::CreateTmallOrder(TopupInfo *topupInfo, ChannelInfo &channelI
 		string time_str;
 		int ret = get_time_now("%Y/%m/%d %H:%M:%S", time_str);
 		if(ret < 18){
+			conn->terminateStatement(stmt);
 			return -3;
 		}
 		stmt->setString(9, time_str);
@@ -110,6 +114,33 @@ int ChargeBusiness::CreateTmallOrder(TopupInfo *topupInfo, ChannelInfo &channelI
 		stmt->setInt(17, channelInfo.channelId);
 		stmt->executeUpdate();
 		conn->terminateStatement(stmt);
+		//加入处理队列
+		string topup_data;
+		//序列化充值信息
+	    serialize_topupinfo(topupInfo, topup_data);
+	    //充值信息同步到redis,进入处理队列
+	    RedisClient *redis = new RedisClient();
+	    if(redis->connect(GlobalConfig::Instance()->s_redis_ip, GlobalConfig::Instance()->n_redis_port)){
+	        redis->select(1);
+	        if(!redis->setex(topupInfo->qs_info.tbOrderNo, topup_data, 3600)){
+	             TP_WRITE_ERR(topupInfo, "#%d [CreateTmallOrder] setex %s failed\n", topupInfo->seqid, 
+						 topupInfo->qs_info.tbOrderNo.c_str());
+				 errors.push_back(string("Exception:cache order failed!"));
+				 ret = -4;
+			}
+		    if(!redis->enqueue("underway", topup_data.c_str())){
+			    TP_WRITE_ERR(topupInfo, "#%d [CreateTmallOrder] enqueue %s failed\n",
+						topupInfo->seqid, topupInfo->qs_info.tbOrderNo.c_str());
+				errors.push_back(string("Exception:enqueue underway failed!"));
+				ret = -5;
+			}
+		}else{
+			TP_WRITE_ERR(topupInfo, "#%d [CreateTmallOrder] enqueue can't connect to redis %s:%d\n",
+					topupInfo->seqid, GlobalConfig::Instance()->s_redis_ip.c_str(), GlobalConfig::Instance()->n_redis_port);
+			errors.push_back(string("Exception:enqueue can't connect to redis"));
+			ret = -6;
+		}
+	    delete redis;
 	}catch (SQLException &sqlExcp){
 		HandleException(sqlExcp);
 		ret = -1;
