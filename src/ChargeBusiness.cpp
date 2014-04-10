@@ -157,6 +157,7 @@ int ChargeBusiness::QueryOrder(TopupInfo *topupInfo){
 	try{
 		Statement *stmt = conn->createStatement(SQL_CREATE_ORDER);
 		string tbOrderNo = topupInfo->qs_info.tbOrderNo;
+	fprintf(stderr, "ChargeBusiness::QueryOrder %s\n", tbOrderNo.c_str());
 		stmt->setString(1, tbOrderNo);
 		ResultSet *rs = stmt->executeQuery();
 		while(rs->next())

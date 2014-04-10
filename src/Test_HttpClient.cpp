@@ -217,7 +217,11 @@ int main(int argc, char *argv[]){
 	*/
 	TEST_CONNECTION();
 	TEST_SIGN();
-	TEST_NORMAL_CHARGE();
+	int i = 100;
+	while(i > 0){
+		i--;
+		TEST_NORMAL_CHARGE();
+	}
 	TEST_QUERY_ORDER();
 	redisContext *redis;
 	redisReply *reply;

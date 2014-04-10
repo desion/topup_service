@@ -52,15 +52,9 @@ class ChannelImpl: public ChannelBase{
 		map<string, string, cmpKeyAscii> map_entitys;
 		Connection *m_conn;
 };
-
 //动态链接库调用接口，用于创建相应实例
-extern "C" ChannelBase* channel_create() {
-	    return new ChannelImpl;
-}
+extern "C" ChannelBase* channel_create(); 
 
 //动态链接库调用接口，用于销毁相应的实例,可不可以通过得到的指针直接销毁
-extern "C" void channel_destroy(ChannelBase* p) {
-	    delete p;
-}
-
+extern "C" void channel_destroy(ChannelBase* p);
 #endif //__CHANNEL_IMPL_H

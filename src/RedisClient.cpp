@@ -154,3 +154,44 @@ bool RedisClient::dequeue(const char* queue, string &value){
     return true;	
 }
 	
+
+int RedisClient::queue_len(const char* queue){
+	int len = 0;
+	len = snprintf(cmd, CMD_LENGTH, "LLEN %s", queue);
+	cmd[len] = '\0';
+	redisReply *reply = (redisReply*)redisCommand(redis, cmd);
+	if(reply == NULL){ 
+		fprintf(stderr, "[queue_len] reply is NULL\n");
+		return 0;
+	}
+	if(reply->type != REDIS_REPLY_INTEGER){
+		fprintf(stderr, "Failed to execute command[%s]\n",cmd);
+		freeReplyObject(reply);
+		return 0;
+	}
+	fprintf(stderr, "[queue_len] reply is %u\n", reply->integer);
+	int ret = reply->integer;
+	freeReplyObject(reply);
+	return ret;
+}
+
+bool RedisClient::ping(){
+	int len = 0;
+	len = snprintf(cmd, CMD_LENGTH, "PING");
+	cmd[len] = '\0';
+	redisReply *reply = (redisReply*)redisCommand(redis, cmd);
+	if(reply == NULL){ 
+		return false;
+	}
+	if(reply->type != REDIS_REPLY_STRING){
+		freeReplyObject(reply);
+		return false;
+	}
+	if(strcmp(reply->str, "PONG") == 0){
+		freeReplyObject(reply);
+		return true;
+	}else{
+		freeReplyObject(reply);
+		return false;
+	}
+}

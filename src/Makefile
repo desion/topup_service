@@ -23,6 +23,12 @@ HTTP_OBJS = HttpClient.o
 
 UTILS_OBJS = TopupUtils.o
 
+HANDLE_OBJS = OrderHandler.o TopupHandleMain.o GlobalConfig.o \
+			  TopupUtils.o ChargeBusiness.o RedisClient.o \
+			  BaseBusiness.o ChannelSLS.o ConnectionManager.o \
+			  HttpClient.o ChannelImpl.o
+
+
 TOPUP_OBJS = TopupImpl.o \
 			 TopupUtils.o \
 			 HttpClient.o \
@@ -47,6 +53,7 @@ CHANNEL_OBJS = ChannelImpl.o \
 TOPUP_SO = topup.so 
 CUSTOMER_SO = customer.so
 CHANNEL_SO = channel.so
+HANDLE_EXE = topup_handle
 
 
 
@@ -66,7 +73,7 @@ LIBS = -L../lib \
 
 TEST = test_httpclient
 
-all: oracle_client topup_server topup.fcg $(TEST) $(TOPUP_SO) $(CUSTOMER_SO) $(CHANNEL_SO)
+all: oracle_client topup_server topup.fcg $(TEST) $(TOPUP_SO) $(CUSTOMER_SO) $(CHANNEL_SO) $(HANDLE_EXE)
 
 
 .cpp.o:
@@ -87,6 +94,11 @@ $(CHANNEL_SO): $(CHANNEL_OBJS)
 
 topup_server: $(OBJS) TopupServer.o
 	$(CXX) $(CPPFLAG) $(INCS) $(LIBS)  TopupServer.o $(OBJS) $(THRIFT_OBJS) -Wl,--rpath -Wl,/data/occi/lib \
+		-locci -lclntsh -lnnz11 -lglog -liniparser -lcurl -lthrift -lthriftnb -lpthread \
+	   	-levent -lcommon -ltinyxml -ljson_linux-gcc-4.1.2_libmt -lhiredis -o $@
+
+$(HANDLE_EXE): $(HANDLE_OBJS)
+	$(CXX) $(CPPFLAG) $(INCS) $(LIBS)  $(HANDLE_OBJS)  -Wl,--rpath -Wl,/data/occi/lib \
 		-locci -lclntsh -lnnz11 -lglog -liniparser -lcurl -lthrift -lthriftnb -lpthread \
 	   	-levent -lcommon -ltinyxml -ljson_linux-gcc-4.1.2_libmt -lhiredis -o $@
 

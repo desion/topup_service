@@ -103,7 +103,7 @@ typedef struct TopupInfo{
 	string interfaceName;
 	int repeat;
 	string channelSname;
-	int channelIndex;
+	uint32_t create_time;
 }TopupInfo;
 
 
@@ -189,5 +189,7 @@ extern int get_strtime(const uint32_t ts, const char* format, string &time_str);
 extern void trans_time(string &from, string &to);
 
 extern void serialize_topupinfo(TopupInfo* topup_info, string &strout);
+
+extern void deserialize_topupinfo(const string& json, TopupInfo* topup_info);
 
 #endif  //__TOPUP_UTILS_H

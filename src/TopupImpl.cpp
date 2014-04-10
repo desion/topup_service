@@ -79,9 +79,13 @@ int TopupImpl::HandleRequest(const TopupRequest& request, string &result){
 		if(TmallCharge(result) == 0){
 			pthread_mutex_lock(&charge_lock);
 			if(charge_count == 0){
+				charge_count++;
 				pthread_cond_signal(&charge_cond);
+			printf("charge count %d and singnal\n", charge_count);
+			}else{
+				charge_count++;
+			printf("charge count %d\n", charge_count);
 			}
-			charge_count++;
 			pthread_mutex_unlock(&charge_lock);
 		}
 	}else if(strcmp(m_interface + 1, "query.fcg") == 0){
@@ -185,7 +189,7 @@ int TopupImpl::TmallCharge(string &response){
 		return 3;
 	}
 	//TODO 选择最优的渠道，渠道信息同样加入缓存，信息更新，重新加载
-	int selectChannel = SelectBestChannel();
+	/*int selectChannel = SelectBestChannel();
 	if(selectChannel <= 0){
 		MakeErrReplay(PRODUCT_MAIN_ERR, SORDER_FAILED, response);
 		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) select channel err %s", PRODUCT_MAIN_ERR);	
@@ -200,7 +204,7 @@ int TopupImpl::TmallCharge(string &response){
 		MakeErrReplay(PRODUCT_MAIN_ERR, SORDER_FAILED, response);
 		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) fail to create order %s", PRODUCT_MAIN_ERR);
 		return 5;	
-	}
+	}*/
 	//TODO 返回结果
 	MakeSuccessReplay(SUNDERWAY, response);
 	
@@ -478,6 +482,7 @@ int TopupImpl::QueryOrder(){
 	bool redis_status = false;
 	int ret = 0;
 	if(redis->connect(GlobalConfig::Instance()->s_redis_ip, GlobalConfig::Instance()->n_redis_port)){
+	printf("QueryOrder in redis\n");
 		string topup_data;
 		redis->select(1);
 		redis_status = redis->get(m_topup_info->qs_info.tbOrderNo, topup_data);
@@ -496,6 +501,7 @@ int TopupImpl::QueryOrder(){
 			return 1;
 		}
 	}
+	printf("QueryOrder in DB\n");
 	ChargeBusiness *chargeBusiness = new ChargeBusiness();
 	chargeBusiness->Init(m_conn);
 	ret = chargeBusiness->QueryOrder(m_topup_info);

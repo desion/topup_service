@@ -98,7 +98,7 @@ int TopupServer::ParseParam(int argc, char ** argv){
 			case 'h':
 				PrintHelp();
 				return 1;
-																																																					default:
+			default:
 				printf("user input options error! \n");
 				PrintHelp();
 				exit(EXIT_FAILURE);

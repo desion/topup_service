@@ -17,7 +17,7 @@ using namespace std;
 const char* ChannelSLS::key = "shoulashou0571";                                                                                                                                                      
 const char* ChannelSLS::userid = "84001";
 const char* ChannelSLS::pwd = "123456";
-
+/*
 bool ChannelSLS::Init(){
 	errors.insert(make_pair("001", "用户不存在"));
 	errors.insert(make_pair("002", "交易密码错误"));
@@ -44,7 +44,7 @@ bool ChannelSLS::Init(){
 	errors.insert(make_pair("610", "订单状态查询失败"));
 	return true;
 }
-
+*/
 
 
 string ChannelSLS::GetErrMsg(string code){

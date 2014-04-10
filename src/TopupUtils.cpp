@@ -8,6 +8,8 @@
 #include "TopupUtils.h"
 #include <sys/stat.h>
 
+LOG_HANDLE g_logHandle = NULL;
+
 int get_file_time(char *filename){
 	struct stat st = {0};
 	if(stat(filename, &st)){
@@ -43,11 +45,9 @@ int so_check_reload(SoBase *so){
 //加载so文件
 int so_load(SoBase *so){
     so->handle = LoadLibrary(so->filename);
-fprintf(stderr, "so_topup_reload %s\n", so->filename);
     if(so->handle == NULL){
        return -1;
     }
-fprintf(stderr, "so_topup_reload\n");
     return 0;
 }
 //卸载so
@@ -191,4 +191,41 @@ void serialize_topupinfo(TopupInfo* topup_info, string &strout){
 	//strout = root.toStyledString();
 	Json::FastWriter writer;
 	strout = writer.write(root);
+}
+
+void deserialize_topupinfo(const string& json, TopupInfo* topup_info){
+	Json::Value root;
+	Json::Reader reader;
+	if(reader.parse(json, root)){
+		if(!root["coopId"].isNull())
+            topup_info->qs_info.coopId = root["coopId"].asString();							//商家编号
+        if(!root["tbOrderNo"].isNull())
+            topup_info->qs_info.tbOrderNo = root["tbOrderNo"].asString();                  //淘宝的订单号
+        if(!root["coopOrderNo"].isNull())
+            topup_info->qs_info.coopOrderNo = root["coopOrderNo"].asString();              //系统生成订单号
+        if(!root["cardId"].isNull())
+            topup_info->qs_info.cardId = root["cardId"].asString();                        //充值卡商品编号
+        if(!root["cardNum"].isNull())
+            topup_info->qs_info.cardNum = root["cardNum"].asInt();						   //充值卡数量
+        if(!root["customer"].isNull())
+            topup_info->qs_info.customer = root["customer"].asString();                    //手机号码
+        if(!root["sum"].isNull())
+            topup_info->qs_info.sum = root["sum"].asDouble();                              //本次充值总金额
+        if(!root["tbOrderSnap"].isNull())
+            topup_info->qs_info.tbOrderSnap = root["tbOrderSnap"].asString();              //商品信息快照
+        if(!root["notifyUrl"].isNull())
+            topup_info->qs_info.notifyUrl = root["notifyUrl"].asString();                   //异同通知地址
+        if(!root["price"].isNull())
+            topup_info->qs_info.price = root["price"].asDouble(); 
+        if(!root["value"].isNull())
+            topup_info->qs_info.value = root["value"].asInt(); 
+        if(!root["op"].isNull())
+            topup_info->qs_info.op = root["op"].asInt(); 
+        if(!root["province"].isNull())
+            topup_info->qs_info.province = root["province"].asInt(); 
+        if(!root["status"].isNull())
+            topup_info->status = (OrderStatus)root["status"].asInt(); 
+        if(!root["creteTime"].isNull())
+            topup_info->create_time = root["creteTime"].asInt(); 
+	}
 }
