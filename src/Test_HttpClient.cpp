@@ -10,6 +10,7 @@
 #include "GlobalConfig.h"
 #include "ConnectionManager.h"
 #include "hiredis/hiredis.h"
+#include "RedisClient.h"
 using namespace std;
 using namespace boost;
 
@@ -215,11 +216,13 @@ int main(int argc, char *argv[]){
 		printf("key:%s\tvalue:%s\n", it->first.c_str(), it->second.c_str());
 	}
 	*/
+
 	TEST_CONNECTION();
 	TEST_SIGN();
-	int i = 100;
+	int i = 10;
 	while(i > 0){
 		i--;
+		sleep(1);
 		TEST_NORMAL_CHARGE();
 	}
 	TEST_QUERY_ORDER();
@@ -229,6 +232,11 @@ int main(int argc, char *argv[]){
 	reply = (redisReply*)redisCommand(redis,"PING");
     printf("PONG: %s\n", reply->str);
     freeReplyObject(reply);
+
+	RedisClient *redisclient = new RedisClient;
+	redisclient->connect("127.0.0.1", 6379);
+	bool ret = redisclient->ping();
+	assert(ret == true);
 
 	//TEST_LAKEPARAM_CHARGE();
 	return 0;

@@ -34,9 +34,9 @@ enum ESysStatus{
 };
 
 GlobalConfig* gconf = NULL;			//全局配置
-extern LOG_HANDLE g_logHandle;
-int isDaemon = 0;
-volatile int status = Normal;
+extern LOG_HANDLE g_logHandle;		//日志句柄
+int isDaemon = 0;					//是否使用后台模式启动
+volatile int status = Normal;		//服务当前状态
 
 //读取启动参数
 int TopupHandleMain::ParseParam(int argc, char ** argv){
@@ -126,6 +126,7 @@ int TopupHandleMain::InitLog()
 }
 
 //全局初始化
+//初始化配置，连接池
 void TopupHandleMain::GlobalInit()
 {
 	gconf = GlobalConfig::Instance();
@@ -164,7 +165,6 @@ int Run(){
 	for(int i = 0; i < num; i++){
 		pthread_create(&charge_threads[i], NULL, charge, NULL);
 	}
-
 	num = GlobalConfig::Instance()->n_query_thread;
 	assert(num > 0);
 	pthread_t *query_threads = (pthread_t *)malloc(num * sizeof(pthread_t));
@@ -180,7 +180,6 @@ int Run(){
 	for(int i = 0; i < num; i++){
 		pthread_create(&notify_threads[i], NULL, notify, NULL);
 	}
-	
 	num = GlobalConfig::Instance()->n_charge_thread;
 	for(int i = 0; i < num; i++){
 		pthread_join(charge_threads[i], NULL);
@@ -194,11 +193,12 @@ int Run(){
 		pthread_join(notify_threads[i], NULL);
 	}
 	delete charge_threads;
-	delete query_threads;
-	delete notify_threads;
+//	delete query_threads;
+//	delete notify_threads;
 	return 0;
 } 
 
+///启动服务
 int TopupHandleMain::Serve(int argc, char ** argv){
 	if(ParseParam(argc, argv) != 0){
 		return -1;
@@ -212,7 +212,7 @@ int TopupHandleMain::Serve(int argc, char ** argv){
 	return 0;
 }
 
-
+///启动后台模式
 void daemon(void){
 	//int fd;
 	if(fork() != 0) exit(0);	//parent exit
@@ -226,10 +226,12 @@ void daemon(void){
 	}*/
 }
 
+///kill信号处理函数
 void signalHandler(int sig){
 	fprintf(stderr, "Received SIGTERM, scheduling shutdown...");
 	exit(0);
 }
+
 //设置信号处理函数
 void setupSignalHandlers(void) {
 	struct sigaction act;
@@ -245,7 +247,7 @@ void setupSignalHandlers(void) {
 
 int main(int argc, char *argv[]){
 	//if(isDaemon == 1)
-		daemon();
+		//daemon();
 	setupSignalHandlers();
 	TopupHandleMain topup_handle;
 	return topup_handle.Serve(argc, argv);

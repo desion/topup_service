@@ -189,7 +189,7 @@ int TopupImpl::TmallCharge(string &response){
 		return 3;
 	}
 	//TODO 选择最优的渠道，渠道信息同样加入缓存，信息更新，重新加载
-	/*int selectChannel = SelectBestChannel();
+	int selectChannel = SelectBestChannel();
 	if(selectChannel <= 0){
 		MakeErrReplay(PRODUCT_MAIN_ERR, SORDER_FAILED, response);
 		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) select channel err %s", PRODUCT_MAIN_ERR);	
@@ -204,7 +204,7 @@ int TopupImpl::TmallCharge(string &response){
 		MakeErrReplay(PRODUCT_MAIN_ERR, SORDER_FAILED, response);
 		TP_WRITE_LOG(m_topup_info, "\t(TmallCharge) fail to create order %s", PRODUCT_MAIN_ERR);
 		return 5;	
-	}*/
+	}
 	//TODO 返回结果
 	MakeSuccessReplay(SUNDERWAY, response);
 	

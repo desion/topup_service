@@ -108,7 +108,7 @@ topup.fcg: $(HTTP_OBJS) TopupFcgi.o
 
 
 test_httpclient: HttpClient.o Test_HttpClient.o
-	$(CXX) $(CPPFLAG) $(INCS) $(LIBS)  Test_HttpClient.o HttpClient.o ConnectionManager.o GlobalConfig.o -Wl,--rpath -Wl,/data/occi/lib \
+	$(CXX) $(CPPFLAG) $(INCS) $(LIBS)  Test_HttpClient.o HttpClient.o ConnectionManager.o GlobalConfig.o RedisClient.o -Wl,--rpath -Wl,/data/occi/lib \
 	   	-lcurl -liconv -liniparser -lcommon -lglog -locci -lclntsh -lnnz11 -ltinyxml -ljson_linux-gcc-4.1.2_libmt -lhiredis -o $@
 
 clean:

@@ -55,6 +55,10 @@
 	}\
 }
 
+#define CHARGEQUEUE "underway"
+#define QUERYQUEUE "query"
+#define NOTIFYQUEUE "notify"
+
 enum OrderStatus{CREATE = 0, UNDERWAY, SUCCESS, FAILED, CANCELED};
 
 typedef struct ChannelInfo{

@@ -181,16 +181,14 @@ bool RedisClient::ping(){
 	cmd[len] = '\0';
 	redisReply *reply = (redisReply*)redisCommand(redis, cmd);
 	if(reply == NULL){ 
-		return false;
-	}
-	if(reply->type != REDIS_REPLY_STRING){
-		freeReplyObject(reply);
+		fprintf(stderr, "[ping] reply is NULL\n");
 		return false;
 	}
 	if(strcmp(reply->str, "PONG") == 0){
 		freeReplyObject(reply);
 		return true;
 	}else{
+		fprintf(stderr, "[ping] reply is not PONG %s\n", reply->str);
 		freeReplyObject(reply);
 		return false;
 	}

@@ -31,6 +31,8 @@ int ChannelImpl::ChargeRequest(TopupInfo *m_topup_info){
 		
 		}
 	}
+	//for test
+	
 	return ret;
 }
 

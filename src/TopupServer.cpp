@@ -362,7 +362,7 @@ int TopupServer::Serve(int argc, char ** argv){
 	//初始化全局配置
 	GlobalInit();
 	//启动处理线程	
-	startThread();
+	//startThread();
 	//启动thrift服务
 	TPServe();
 	return 0;

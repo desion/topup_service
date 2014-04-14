@@ -23,6 +23,10 @@ using namespace std;
 
 #define SQL_UPDATE_STATUS "UPDATE TOPUP_ORDER_TBL set STATUS = :1 ,NOTIFY = :2, UPDATE_TIME = :3 WHERE SYSTEM_NO = :4"
 
+#define SQL_UPDATE_NOTIFY "UPDATE TOPUP_ORDER_TBL set NOTIFY = :1, UPDATE_TIME = :2 WHERE SYSTEM_NO = :3"
+
+#define SQL_QUERY_NOTIFY "SELECT NOTIFY FROM TOPUP_ORDER_TBL WHERE SYSTEM_NO = :1"
+
 #define SQL_UPDATE_CHANNEL "UPDATE TOPUP_ORDER_TBL set PROXY = :1, INPRICE = :2, PROFIT = :3 WHERE SYSTEM_NO = :4"
 
 //(13693555577, 13693555577, 2, 100, '1234567891231', '1234567891231', '1234567891231', 1, '2013/12/20 12:25:22', '2013/12/20 12:28:22', 0, 2, 2, 100.12, 98.95, 1.02, 101);"
@@ -51,7 +55,11 @@ public:
 
 	int UpdateOrderStatus(TopupInfo *topupInfo);
 
+	int NotifyOrder(TopupInfo *topupInfo);
+
 	int UpdateChannel(TopupInfo *topupInfo);
+
+	int GetNotifyStatus(string &sysNo);
 };
 
 
