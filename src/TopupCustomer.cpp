@@ -1,34 +1,30 @@
 /*************************************************************************
-	> File Name: TopupImpl.cpp
+	> File Name: TopupCustomer.cpp
 	> Author: desionwang
 	> Mail: wdxin1322@qq.com 
 	> Created Time: Sat 08 Feb 2014 04:16:03 PM CST
  ************************************************************************/
 
-#include "TopupImpl.h"
+#include "TopupCustomer.h"
 #include "TopupUtils.h"
 #include "HttpClient.h"
 #include "GlobalConfig.h"
 using namespace std;
 using namespace  ::topupinterface;
 
-TopupImpl::TopupImpl(){
+TopupCustomer::TopupCustomer(){
 	//m_topup_info = new TopupInfo();
 }
 
-TopupImpl::~TopupImpl(){
+TopupCustomer::~TopupCustomer(){
 	//delete m_topup_info;
 	//日志记录落地
-	P_TPServer->CallLog(m_topup_info);
+//	P_TPServer->CallLog(m_topup_info);
 }
 
-/**最优渠道选择函数**/
-bool ChannelRank(ChannelInfo channelA, ChannelInfo channelB){
-	return channelA.priority > channelB.priority;
-}
 
 /**初始化连接**/
-int TopupImpl::Init(TopupInfo* topup_info)
+int TopupCustomer::Init(TopupInfo* topup_info)
 {
 	m_topup_info = topup_info;
 	m_conn = topup_info->conn;
@@ -43,7 +39,7 @@ int TopupImpl::Init(TopupInfo* topup_info)
 #define REQUEST_FAILED_ERR	"0104"
 
 //处理FCGI的请求，根据请求的URI判断如何处理
-int TopupImpl::HandleRequest(const TopupRequest& request, string &result){
+int TopupCustomer::HandleRequest(const TopupRequest& request, string &result){
 	TP_WRITE_LOG(m_topup_info, "#%d\t[%s]\t%s\t%s\t%d",m_topup_info->seqid, request.uri.c_str()
 			,request.query.c_str(), request.checksum.c_str(), request.itimestamp);
 	const char *params = request.query.c_str();
@@ -68,11 +64,11 @@ int TopupImpl::HandleRequest(const TopupRequest& request, string &result){
 	//TP_WRITE_LOG(m_topup_info, "\t{%s}", m_interface);
 	if(strcmp(m_interface + 1, "topup.fcg") == 0){
 		//调用充值接口
-		TmallCharge(result);
+		CustomerCharge(result);
 	}else if(strcmp(m_interface + 1, "query.fcg") == 0){
 		//调用查询订单查询接口
 		printf("URI:%s\n", uri);
-		TmallQuery(result);
+		CustomerQuery(result);
 	}else if(strcmp(m_interface, "cancel") == 0){
 		//调用取消接口
 	}else if(strcmp(m_interface, "balance") == 0){
@@ -87,8 +83,12 @@ int TopupImpl::HandleRequest(const TopupRequest& request, string &result){
 	return 0;
 }
 
+int TopupCustomer::Notify(){
+	return 0;
+}
+
 ///充值接口用于天猫和下游订购用户
-int TopupImpl::TmallCharge(string &response){
+int TopupCustomer::CustomerCharge(string &response){
 	//TODO 验证参数的正确性
 	//http://host:port/resource?coopId=xxx&tbOrderNo=xxx&cardId=xxx&cardNum=xxx&customer=xxx&sum=xxx&gameId=xxx&section1=xxx&section2=xxx&notifyUrl=xxx&sign=xxx&version=xxx
 	
@@ -179,7 +179,7 @@ int TopupImpl::TmallCharge(string &response){
 
 
 ///天猫查询接口，用于查询订单
-int TopupImpl::TmallQuery(string &response){
+int TopupCustomer::CustomerQuery(string &response){
 	//验证参数的正确性
 	map<string, string>::iterator it;
 	string coopId;			//商家编号
@@ -227,7 +227,7 @@ int TopupImpl::TmallQuery(string &response){
 }
 
 //回调接口，向TMALL发送回调请求，接口需要tmall和下游用户实现，该方法只发送回调请求
-int TopupImpl::TmallNotify(string &response){
+int TopupCustomer::CustomerNotify(string &response){
 	if(m_topup_info->qs_info.coopId.empty()){
 		MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
 	    TP_WRITE_LOG(m_topup_info, "\t(TmallQuery) NO coopId %s", LAKE_PARAM_ERR);
@@ -259,17 +259,9 @@ int TopupImpl::TmallNotify(string &response){
 	return 0;
 }
 
-///只用于接收处理天猫的取消请求
-int TopupImpl::TmallCancel(string &response){
-	map<string, string>::iterator it;
-	string coopId;			//商家编号
-	string tbOrderNo;		//淘宝的订单号
-	string sign;			//签名字符串
-	return 0;
-}
 
 ///用于处理下游订购用户的查询余额请求
-int TopupImpl::GetBalance(string &response){
+int TopupCustomer::GetBalance(string &response){
 	//查询数据库，取得余额信息
 	//返回余额信息
 	return 0;
@@ -277,7 +269,7 @@ int TopupImpl::GetBalance(string &response){
 
 
 //返回错误信息
-int TopupImpl::MakeErrReplay(const char* errCode,const char* status, string &result){
+int TopupCustomer::MakeErrReplay(const char* errCode,const char* status, string &result){
 	char buf[2048] = {0};
 	int len = 0;
 	len += sprintf(buf, "<?xml version=\"1.0\" encoding=\"utf-8\"?>");
@@ -293,7 +285,7 @@ int TopupImpl::MakeErrReplay(const char* errCode,const char* status, string &res
 	return len;
 }
 //返回正确的信息
-int TopupImpl::MakeSuccessReplay(const char* status, string &result){
+int TopupCustomer::MakeSuccessReplay(const char* status, string &result){
 	char buf[2048] = {0};
 	int len = 0;
 	len += sprintf(buf, "<?xml version=\"1.0\" encoding=\"utf-8\"?>");
@@ -308,7 +300,7 @@ int TopupImpl::MakeSuccessReplay(const char* status, string &result){
 	return len;
 }
 
-int TopupImpl::CheckProduct(){
+int TopupCustomer::CheckProduct(){
 	printf("CheckProduct.....\n");
 
 	ChargeBusiness *chargeBusiness = new ChargeBusiness();
@@ -324,7 +316,7 @@ int TopupImpl::CheckProduct(){
 	return ret;
 }
 
-int TopupImpl::SelectBestChannel(){
+int TopupCustomer::SelectBestChannel(){
 	ChargeBusiness *chargeBusiness = new ChargeBusiness();
 	chargeBusiness->Init(m_conn);
 	int channel_num = chargeBusiness->SelectBestChannel(m_topup_info->qs_info.value, m_topup_info->qs_info.province,
@@ -346,7 +338,7 @@ int TopupImpl::SelectBestChannel(){
 	return 0;
 }
 
-int TopupImpl::CreateTmallOrder(){
+int TopupCustomer::CreateTmallOrder(){
 	printf("CreateTmallOrder.....\n");
 	ChargeBusiness *chargeBusiness = new ChargeBusiness();
 	chargeBusiness->Init(m_conn);
@@ -355,7 +347,7 @@ int TopupImpl::CreateTmallOrder(){
 	return ret;
 }
 
-int TopupImpl::QueryOrder(){
+int TopupCustomer::QueryOrder(){
 	ChargeBusiness *chargeBusiness = new ChargeBusiness();
 	chargeBusiness->Init(m_conn);
 	int ret = chargeBusiness->QueryOrder(m_topup_info);
@@ -363,7 +355,7 @@ int TopupImpl::QueryOrder(){
 	return ret;
 }
 
-bool TopupImpl::CheckSign(){
+bool TopupCustomer::CheckSign(){
 	char md5[33] = {0};
     char signStr[2048] = {0};
     int len = 0;
@@ -386,4 +378,14 @@ bool TopupImpl::CheckSign(){
 		return false;
 	}
 	return true;	
+}
+
+//动态链接库调用接口，用于创建相应实例
+extern "C" TopupBase* customer_create() {
+	    return new TopupCustomer;
+}
+
+//动态链接库调用接口，用于销毁相应的实例,可不可以通过得到的指针直接销毁
+extern "C" void customer_destroy(TopupBase* p) {
+	    delete p;
 }

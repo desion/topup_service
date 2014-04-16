@@ -59,6 +59,14 @@
 #define QUERYQUEUE "query"
 #define NOTIFYQUEUE "notify"
 
+enum RequestType{
+    CHARGE = 0,
+    QUERY,
+    BALANCE,
+    CANCEL,
+    NOTIFY
+};
+
 enum OrderStatus{CREATE = 0, UNDERWAY, SUCCESS, FAILED, CANCELED};
 
 typedef struct ChannelInfo{
@@ -156,6 +164,7 @@ int so_load(SoBase *so);
 int so_free(SoBase *so);
 //动态链接库加载函数，主要是加载相应的函数
 int so_topup_reload(SoBase *h);
+int so_customer_reload(SoBase *h);
 
 
 inline int split_string (char * s, const char * seperator, std::vector<char *> & field_vec)
@@ -175,6 +184,13 @@ inline int split_string (char * s, const char * seperator, std::vector<char *> &
 	}
 	return field_vec.size();
 }
+
+/**最优渠道选择函数**/
+inline bool ChannelRank(ChannelInfo channelA, ChannelInfo channelB){                                                                                                                                           
+	        return channelA.priority > channelB.priority;
+}
+
+
 
 //根据手机号码和时间生成order no
 extern uint64_t encode_orderno(string phoneNo);

@@ -201,7 +201,7 @@ void TopupServer::GlobalInit()
 	}else{
 		slog_write(LL_NOTICE, "tmall so load success %s", gconf->p_tmall_path);
 	}	
-	if(so_init(&customer_so, gconf->p_customer_path, so_topup_reload)){
+	if(so_init(&customer_so, gconf->p_customer_path, so_customer_reload)){
 		slog_write(LL_FATAL, "customer so load failed %s", gconf->p_customer_path);
 		exit(EXIT_FAILURE);
 	}else{

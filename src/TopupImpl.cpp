@@ -14,8 +14,6 @@ using namespace  ::topupinterface;
 using namespace boost;
 
 int charge_count;
-pthread_mutex_t charge_lock;
-pthread_cond_t charge_cond;
 
 TopupServer *P_TPServer;
 TopupImpl::TopupImpl(){
@@ -28,10 +26,6 @@ TopupImpl::~TopupImpl(){
 	P_TPServer->CallLog(m_topup_info);
 }
 
-/**最优渠道选择函数**/
-bool ChannelRank(ChannelInfo channelA, ChannelInfo channelB){
-	return channelA.priority > channelB.priority;
-}
 
 /**初始化连接**/
 int TopupImpl::Init(TopupInfo* topup_info)
@@ -76,18 +70,7 @@ int TopupImpl::HandleRequest(const TopupRequest& request, string &result){
 	//TP_WRITE_LOG(m_topup_info, "\t{%s}", m_interface);
 	if(strcmp(m_interface + 1, "topup.fcg") == 0){
 		//调用充值接口
-		if(TmallCharge(result) == 0){
-			pthread_mutex_lock(&charge_lock);
-			if(charge_count == 0){
-				charge_count++;
-				pthread_cond_signal(&charge_cond);
-			printf("charge count %d and singnal\n", charge_count);
-			}else{
-				charge_count++;
-			printf("charge count %d\n", charge_count);
-			}
-			pthread_mutex_unlock(&charge_lock);
-		}
+		TmallCharge(result);
 	}else if(strcmp(m_interface + 1, "query.fcg") == 0){
 		//调用查询订单查询接口
 		printf("URI:%s\n", uri);
@@ -107,6 +90,14 @@ int TopupImpl::HandleRequest(const TopupRequest& request, string &result){
 }
 
 int TopupImpl::Notify(){
+	shared_ptr<ChargeBusiness> chargeBusiness(new ChargeBusiness());
+	chargeBusiness->Init(m_conn);
+    Product m_product;
+    int notify =  chargeBusiness->GetNotifyStatus(m_topup_info->qs_info.coopOrderNo);
+    //没有通知的情况下进行通知
+	if(notify == 0){
+		TmallNotify();
+    }
 	return 0;	
 }
 
@@ -264,33 +255,30 @@ int TopupImpl::TmallQuery(string &response){
 }
 
 //回调接口，向TMALL发送回调请求，接口需要tmall和下游用户实现，该方法只发送回调请求
-int TopupImpl::TmallNotify(string &response){
+int TopupImpl::TmallNotify(){
 	int retry = 5;
 	int notify_status = 0;
 	while(retry > 0 && notify_status == 0){
 		retry--;
 		if(m_topup_info->qs_info.coopId.empty()){
-			MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
 			TP_WRITE_LOG(m_topup_info, "\t(TmallNotify) NO coopId %s", LAKE_PARAM_ERR);
 			return 1;
 		}
 		if(m_topup_info->qs_info.tbOrderNo.empty()){
-			MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
 			TP_WRITE_LOG(m_topup_info, "\t(TmallNotify) NO tbOrderNo %s", LAKE_PARAM_ERR);
 			return 1;
 		}
 		if(m_topup_info->qs_info.coopOrderNo.empty()){
-			MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
 			TP_WRITE_LOG(m_topup_info, "\t(TmallNotify) NO tbOrderNo %s", LAKE_PARAM_ERR);
 			return 1;
 		}
+		/*
 		if(m_topup_info->qs_info.coopOrderStatus.empty()){
-			MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
 			TP_WRITE_LOG(m_topup_info, "\t(TmallNotify) NO tbOrderNo %s", LAKE_PARAM_ERR);
 			return 1;
 		}
+		*/
 		if(m_topup_info->qs_info.notifyUrl.empty()){
-			MakeErrReplay(LAKE_PARAM_ERR, SORDER_FAILED, response);
 			TP_WRITE_LOG(m_topup_info, "\t(TmallNotify) NO notifyUrl %s", LAKE_PARAM_ERR);
 			return 1;
 		}
@@ -308,7 +296,8 @@ int TopupImpl::TmallNotify(string &response){
 				   	m_topup_info->qs_info.coopOrderNo.c_str(), m_topup_info->qs_info.tbOrderSnap.c_str(),ts.c_str());
 			buf[len] = '\0';
 			if(url_signature(buf ,GlobalConfig::Instance()->private_key , md5str) != 0){
-				
+				TP_WRITE_LOG(m_topup_info, "\t(TmallNotify) url_signature failed");
+				continue;
 			}
 			len = 0;
 			len += sprintf(buf,
@@ -316,7 +305,12 @@ int TopupImpl::TmallNotify(string &response){
 				m_topup_info->qs_info.coopId.c_str(), m_topup_info->qs_info.tbOrderNo.c_str(),
 				m_topup_info->qs_info.coopOrderNo.c_str(), snap_encode, ts.c_str(), md5str);
 			buf[len] = '\0';
-			httpclent_perform(m_topup_info->qs_info.notifyUrl.c_str(), buf, &parse_tmall_response, (void*)(&notify_status));
+			if(!httpclent_perform(m_topup_info->qs_info.notifyUrl.c_str(), buf, &parse_tmall_response, (void*)(&notify_status))){
+				//log
+				TP_WRITE_LOG(m_topup_info, "\t(TmallNotify) httpclent_perform failed");
+				notify_status = 0;
+				continue;
+			}
 		}else if(m_topup_info->status == FAILED){
 			len += sprintf(buf,
 				"coopId=%s&tbOrderNo=%s&coopOrderNo=%s&coopOrderStatus=FAILED&failedCode=%s",
@@ -324,7 +318,8 @@ int TopupImpl::TmallNotify(string &response){
 			   	m_topup_info->qs_info.coopOrderNo.c_str(), "0501");
 			buf[len] = '\0';
 			if(url_signature(buf ,GlobalConfig::Instance()->private_key , md5str) != 0){
-				
+				TP_WRITE_LOG(m_topup_info, "\t(TmallNotify) url_signature failed");
+				continue;	
 			}
 			len = 0;
 			len += sprintf(buf,
@@ -332,12 +327,16 @@ int TopupImpl::TmallNotify(string &response){
 					m_topup_info->qs_info.coopId.c_str(),m_topup_info->qs_info.tbOrderNo.c_str(),
 				   	m_topup_info->qs_info.coopOrderNo.c_str(),  "0501", md5str);
 			buf[len] = '\0';
-			httpclent_perform(m_topup_info->qs_info.notifyUrl.c_str(), buf, &parse_tmall_response, (void*)(&notify_status));
+			if(!httpclent_perform(m_topup_info->qs_info.notifyUrl.c_str(), buf, &parse_tmall_response, (void*)(&notify_status))){
+				//log
+				TP_WRITE_LOG(m_topup_info, "\t(TmallNotify) httpclent_perform failed");
+				notify_status = 0;
+				continue;
+			}
 		}else{
 			return 0;
 		}
 	}
-	//验证返回结果，并且实现重发策略
 	//更新数据库
 	UpdateStatus();
 	return 0;
@@ -544,4 +543,15 @@ int TopupImpl::UpdateStatus(){
 	int ret = chargeBusiness->UpdateOrderStatus(m_topup_info);
 	delete chargeBusiness;
 	return ret;
+}
+
+
+//动态链接库调用接口，用于创建相应实例
+extern "C" TopupBase* m_create() {
+	    return new TopupImpl;
+}
+
+//动态链接库调用接口，用于销毁相应的实例,可不可以通过得到的指针直接销毁
+extern "C" void m_destroy(TopupBase* p) {
+	    delete p;
 }

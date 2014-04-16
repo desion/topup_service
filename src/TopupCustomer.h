@@ -17,19 +17,11 @@
 using namespace std;
 using namespace  ::topupinterface;
 
-enum RequestType{
-	CHARGE = 0,
-	QUERY,
-	BALANCE,
-	CANCEL,
-	NOTIFY	
-};
 
-
-class TopupImpl: public TopupBase{
+class TopupCustomer: public TopupBase{
 	public:
-		TopupImpl();
-		~TopupImpl();
+		TopupCustomer();
+		~TopupCustomer();
 		//对外接口，统一处理FCGI请求
 		int HandleRequest(const TopupRequest& request, string& result);
 
@@ -42,11 +34,11 @@ class TopupImpl: public TopupBase{
 	protected:
 		//针对各个接口的处理函数
 		//放货充值接口
-		int TmallCharge(string &response); 
+		int CustomerCharge(string &response); 
 		//放货查询接口
-		int TmallQuery(string &response);
+		int CustomerQuery(string &response);
 		//放货回调接口，向客户发送回调请求
-		int TmallNotify(string &response);
+		int CustomerNotify(string &response);
 		//查询余额接口，第三方订购商使用
 		int GetBalance(string &response);
 	
@@ -83,13 +75,9 @@ class TopupImpl: public TopupBase{
 };
 
 //动态链接库调用接口，用于创建相应实例
-extern "C" TopupBase* m_create() {
-	    return new TopupCustomer;
-}
+extern "C" TopupBase* customer_create();
 
 //动态链接库调用接口，用于销毁相应的实例,可不可以通过得到的指针直接销毁
-extern "C" void m_destroy(TopupBase* p) {
-	    delete p;
-}
+extern "C" void customer_destroy(TopupBase* p);
 
 #endif //__TOPUP_IMPL_H

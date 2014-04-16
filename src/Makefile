@@ -26,7 +26,9 @@ UTILS_OBJS = TopupUtils.o
 HANDLE_OBJS = OrderHandler.o TopupHandleMain.o GlobalConfig.o \
 			  TopupUtils.o ChargeBusiness.o RedisClient.o \
 			  BaseBusiness.o ChannelSLS.o ConnectionManager.o \
-			  HttpClient.o ChannelImpl.o
+			  HttpClient.o ChannelImpl.o TopupImpl.o \
+			  $(INTERFACE_DIR)/TopupInterface_types.o \
+			 TopupCustomer.o 
 
 
 TOPUP_OBJS = TopupImpl.o \
@@ -41,18 +43,18 @@ CUSTOMER_OBJS = TopupCustomer.o \
 			 TopupUtils.o \
 			 HttpClient.o \
 			 $(INTERFACE_DIR)/TopupInterface_types.o \
-			 ChannelSLS.o \
 			 ChargeBusiness.o \
-			 BaseBusiness.o 
+			 BaseBusiness.o \
+			 RedisClient.o 
 
 CHANNEL_OBJS = ChannelImpl.o \
 			   ChannelSLS.o \
 			   TopupUtils.o \
 			   HttpClient.o
 
-TOPUP_SO = topup.so 
-CUSTOMER_SO = customer.so
-CHANNEL_SO = channel.so
+TOPUP_SO = libtopup.so 
+CUSTOMER_SO = libcustomer.so
+CHANNEL_SO = libchannel.so
 HANDLE_EXE = topup_handle
 
 
@@ -85,9 +87,11 @@ oracle_client: oracle.o
 
 $(TOPUP_SO): $(TOPUP_OBJS)
 	$(CXX) -g -fPIC -shared -o $@ $^
+	cp $(TOPUP_SO) /data/occi/lib/
 
 $(CUSTOMER_SO): $(CUSTOMER_OBJS)
 	$(CXX) -g -fPIC -shared  -o $@ $^
+	cp $(CUSTOMER_SO) /data/occi/lib/
 
 $(CHANNEL_SO): $(CHANNEL_OBJS)
 	$(CXX) -g -fPIC -shared -o $@ $^
@@ -113,4 +117,5 @@ test_httpclient: HttpClient.o Test_HttpClient.o
 
 clean:
 	rm *.o -f
+	rm *.so
 	rm oracle_client topup_server topup.fcg $(TEST) $(TOPUP_SO) $(CUSTOMER_SO)

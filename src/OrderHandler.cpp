@@ -9,21 +9,28 @@
 #include "TopupUtils.h"
 #include "RedisClient.h"
 #include "ChannelImpl.h"
+#include "TopupBase.h"
+#include "TopupImpl.h"
+#include "TopupCustomer.h"
 #include "OrderHandler.h"
 #include "boost/shared_ptr.hpp"
 
 using namespace boost;
 
 extern LOG_HANDLE g_logHandle; 
+#define INITIAL_SLEEP_TIME 10000
+#define MAX_SLEEP_TIME 200000
+#define TIMEOUT_TIME 1800
 
 void *charge(void *arg){
-	int sleep_time = 10000;//ms	
+	int sleep_time = INITIAL_SLEEP_TIME;//ms	
 	int fail_time = 0;
 	int retry_time = 5;
 	int charge_status = 1;
 	RedisClient *redis = new RedisClient();
 	if(!redis->connect(GlobalConfig::Instance()->s_redis_ip, GlobalConfig::Instance()->n_redis_port)){
-		seErrLogEx(g_logHandle, "[charge#%d] start thread can't connect to redis %s:%d",getpid(), GlobalConfig::Instance()->s_redis_ip.c_str(),GlobalConfig::Instance()->n_redis_port);
+		seErrLogEx(g_logHandle, "[charge#%lu] start thread can't connect to redis %s:%d"
+				,pthread_self(), GlobalConfig::Instance()->s_redis_ip.c_str(),GlobalConfig::Instance()->n_redis_port);
 		return NULL;
 	}
 	while(1){
@@ -36,12 +43,13 @@ void *charge(void *arg){
 					fail_time = 0;
 				}else{
 					if(!redis->connect(GlobalConfig::Instance()->s_redis_ip, GlobalConfig::Instance()->n_redis_port)){
-						seErrLogEx(g_logHandle, "[charge#%d] reconnect can't connect to redis %s:%d thread exit",getpid(), GlobalConfig::Instance()->s_redis_ip.c_str(),GlobalConfig::Instance()->n_redis_port);
+						seErrLogEx(g_logHandle, "[charge#%lu] reconnect can't connect to redis %s:%d thread exit"
+								,pthread_self(), GlobalConfig::Instance()->s_redis_ip.c_str(),GlobalConfig::Instance()->n_redis_port);
 						return NULL;
 					}
 				}
 			}
-			if(sleep_time < 2000)
+			if(sleep_time < MAX_SLEEP_TIME)
 				sleep_time += 10;
 		}else{
 			if(sleep_time > 0)
@@ -55,7 +63,7 @@ void *charge(void *arg){
 			}
 			if(charge_status != 0){
 				//创建失败,不再返回队列，直接重试
-				seErrLogEx(g_logHandle, "[charge#%d] order:%s try 5 times and failed!",getpid(), value.c_str());
+				seErrLogEx(g_logHandle, "[charge#%lu] order:%s try 5 times and failed!",pthread_self(), value.c_str());
 				//更新订单状态为失败，并通知
 				shared_ptr<ChargeBusiness> chargeBusiness(new ChargeBusiness());
 				ConnectionManager *connManager = ConnectionManager::Instance();
@@ -68,14 +76,14 @@ void *charge(void *arg){
 				string fail_data;
 				serialize_topupinfo(topup_info, fail_data);
 				redis->enqueue(NOTIFYQUEUE, fail_data.c_str());		
-				seLogEx(g_logHandle, "[charge#%d] create order failed push to notify:%s",getpid(), fail_data.c_str());
+				seLogEx(g_logHandle, "[charge#%lu] create order failed push to notify:%s",pthread_self(), fail_data.c_str());
 			}else{
 				//成功放入查询队列
 				string success_data;
 				serialize_topupinfo(topup_info, success_data);
 				redis->enqueue(QUERYQUEUE, success_data.c_str());		
 				printf("%s\n", success_data.c_str());
-				seLogEx(g_logHandle, "[charge#%d] create order success push to query:%s",getpid(), success_data.c_str());
+				seLogEx(g_logHandle, "[charge#%lu] create order success push to query:%s",pthread_self(), success_data.c_str());
 			}
 		}
 		if(sleep_time > 0)
@@ -85,11 +93,12 @@ void *charge(void *arg){
 }
 
 void *query(void *arg){
-	int sleep_time = 10000;//ms	
+	int sleep_time = INITIAL_SLEEP_TIME;//ms	
 	int fail_time = 0;
-	RedisClient *redis = new RedisClient();
+	shared_ptr<RedisClient> redis(new RedisClient());
 	if(!redis->connect(GlobalConfig::Instance()->s_redis_ip, GlobalConfig::Instance()->n_redis_port)){
-		seErrLogEx(g_logHandle, "[query#%d] start thread can't connect to redis %s:%d",getpid(), GlobalConfig::Instance()->s_redis_ip.c_str(),GlobalConfig::Instance()->n_redis_port);
+		seErrLogEx(g_logHandle, "[query#%lu] start thread can't connect to redis %s:%d"
+				,pthread_self(), GlobalConfig::Instance()->s_redis_ip.c_str(),GlobalConfig::Instance()->n_redis_port);
 		return NULL;
 	}
 
@@ -103,12 +112,13 @@ void *query(void *arg){
 					fail_time = 0;
 				}else{
 					if(!redis->connect(GlobalConfig::Instance()->s_redis_ip, GlobalConfig::Instance()->n_redis_port)){
-						seErrLogEx(g_logHandle, "[query#%d] reconnect can't connect to redis %s:%d thread exit",getpid(), GlobalConfig::Instance()->s_redis_ip.c_str(),GlobalConfig::Instance()->n_redis_port);
+						seErrLogEx(g_logHandle, "[query#%lu] reconnect can't connect to redis %s:%d thread exit"
+								,pthread_self(), GlobalConfig::Instance()->s_redis_ip.c_str(),GlobalConfig::Instance()->n_redis_port);
 						return NULL;
 					}
 				}
 			}
-			if(sleep_time < 2000)
+			if(sleep_time < MAX_SLEEP_TIME)
 				sleep_time += 10;
 		}else{
 			if(sleep_time > 0)
@@ -129,11 +139,11 @@ void *query(void *arg){
 				string success_data;
 				serialize_topupinfo(topup_info, success_data);
 				redis->enqueue(NOTIFYQUEUE, success_data.c_str());		
-				seLogEx(g_logHandle, "[query#%d] order charge succes push to notify:%s",getpid(), success_data.c_str());
+				seLogEx(g_logHandle, "[query#%lu] order charge succes push to notify:%s",pthread_self(), success_data.c_str());
 			}else{
 				//将要超时的直接更新为成功
 				time_t time_now = time(NULL);
-				if(time_now - topup_info->create_time >= 1800){
+				if(time_now - topup_info->create_time >= TIMEOUT_TIME){
 					topup_info->status = SUCCESS;
 					//更新订单状态为成功，并通知
 					shared_ptr<ChargeBusiness> chargeBusiness(new ChargeBusiness());
@@ -146,13 +156,13 @@ void *query(void *arg){
 					string success_data;
 					serialize_topupinfo(topup_info, success_data);
 					redis->enqueue(NOTIFYQUEUE, success_data.c_str());		
-					seLogEx(g_logHandle, "[query#%d] order charge succes push to notify:%s",getpid(), success_data.c_str());
+					seLogEx(g_logHandle, "[query#%lu] order charge succes push to notify:%s",pthread_self(), success_data.c_str());
 				}else{
 					//没有成功的任务重新入队列	
 					string success_data;
 					serialize_topupinfo(topup_info, success_data);
 					redis->enqueue(QUERYQUEUE, success_data.c_str());		
-					seLogEx(g_logHandle, "[query#%d] order charge succes push to notify:%s",getpid(), success_data.c_str());
+					seLogEx(g_logHandle, "[query#%lu] order charge succes push to notify:%s",pthread_self(), success_data.c_str());
 				}
 			}
 			delete topup_info;
@@ -164,13 +174,14 @@ void *query(void *arg){
 }
 
 void *notify(void *arg){
-	int sleep_time = 10000;//ms	
+	int sleep_time = INITIAL_SLEEP_TIME;//ms	
 	int fail_time = 0;
 	int retry_times = 5;
 	int notify_status = -1;
-	RedisClient *redis = new RedisClient();
+	shared_ptr<RedisClient> redis(new RedisClient());
 	if(!redis->connect(GlobalConfig::Instance()->s_redis_ip, GlobalConfig::Instance()->n_redis_port)){
-		seErrLogEx(g_logHandle, "[notify#%d] start thread can't connect to redis %s:%d",getpid(), GlobalConfig::Instance()->s_redis_ip.c_str(),GlobalConfig::Instance()->n_redis_port);
+		seErrLogEx(g_logHandle, "[notify#%lu] start thread can't connect to redis %s:%d"
+				,pthread_self(), GlobalConfig::Instance()->s_redis_ip.c_str(),GlobalConfig::Instance()->n_redis_port);
 		return NULL;
 	}
 
@@ -184,12 +195,13 @@ void *notify(void *arg){
 					fail_time = 0;
 				}else{
 					if(!redis->connect(GlobalConfig::Instance()->s_redis_ip, GlobalConfig::Instance()->n_redis_port)){
-						seErrLogEx(g_logHandle, "[notify#%d] reconnect can't connect to redis %s:%d thread exit",getpid(), GlobalConfig::Instance()->s_redis_ip.c_str(),GlobalConfig::Instance()->n_redis_port);
+						seErrLogEx(g_logHandle, "[notify#%lu] reconnect can't connect to redis %s:%d thread exit"
+								,pthread_self(), GlobalConfig::Instance()->s_redis_ip.c_str(),GlobalConfig::Instance()->n_redis_port);
 						return NULL;
 					}
 				}
 			}
-			if(sleep_time < 2000)
+			if(sleep_time < MAX_SLEEP_TIME)
 				sleep_time += 10;
 		}else{
 			if(sleep_time > 0)
@@ -206,9 +218,40 @@ void *notify(void *arg){
 		    connManager->Recover(conn);
 
 			//notify失败5次，直接丢弃
-			while(notify == 0 && retry_times >= 0 && notify_status != 0){
-				notify_status = channel_handler->ChargeRequest(topup_info);
+			//判断订单的来源，调用相应的接口进行通知
+			if(topup_info->interfaceName == "tmall"){
+				TopupBase* topupBase = new TopupImpl();
+				ConnectionManager *connManager = ConnectionManager::Instance();
+				Connection *conn = connManager->CreateConnection();
+				if(conn == NULL){
+					slog_write(LL_FATAL, "create connection instance failed!");
+				}
+				topup_info->conn = conn;
+				topupBase->Init(topup_info);
+				while(notify == 0 && retry_times >= 0 && notify_status != 0){
+					notify_status = topupBase->Notify();
+				}
+				connManager->Recover(conn);
+				//销毁充值实例
+				delete topupBase;
+			}else{
+				TopupBase* topupBase = new TopupCustomer();
+				ConnectionManager *connManager = ConnectionManager::Instance();
+				Connection *conn = connManager->CreateConnection();
+				if(conn == NULL){
+					slog_write(LL_FATAL, "create connection instance failed!");
+				}
+				topup_info->conn = conn;
+				topupBase->Init(topup_info);
+				//重试
+				while(notify == 0 && retry_times >= 0 && notify_status != 0){
+					notify_status = topupBase->Notify();
+				}
+				connManager->Recover(conn);
+				//销毁充值实例
+				delete topupBase;
 			}
+			delete topup_info;
 		}
 
 		if(sleep_time > 0)

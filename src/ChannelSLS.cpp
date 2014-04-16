@@ -101,6 +101,7 @@ int ChannelSLS::Charge(TopupInfo *topup_info, string &result)
 {
 	TP_WRITE_LOG(topup_info, "[ChannelSLS][Charge] CALL");
 	int ret = 0;
+	int retry = 5;
 	char ret_code[5] = {0};
 	int len = 0, siglen = 0;
 	char buf[2048] = {0};
@@ -116,11 +117,20 @@ int ChannelSLS::Charge(TopupInfo *topup_info, string &result)
 	str2md5(sigbuf, siglen, md5str);
 	len += sprintf(buf + len, "&Sign=%s", md5str);
 	buf[len] = '\0';
-    httpclent_perform(charge_interface, buf, parse_charge_response, (void*)&ret_code);
-	if(strcmp(ret_code, "000") == 0){
-		ret = 0;
-	}else{
-		ret = 1;
+	while(retry >=0 && ret != 0){
+		retry--;
+		if(httpclent_perform(charge_interface, buf, parse_charge_response, (void*)&ret_code)){
+			if(strcmp(ret_code, "000") == 0){
+				ret = 0;
+				break;
+			}else{
+				ret = 1;
+				continue;
+			}
+		}else{
+			ret = 1;
+			continue;
+		}
 	}
 	return ret;
 }

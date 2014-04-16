@@ -46,6 +46,7 @@ int so_check_reload(SoBase *so){
 int so_load(SoBase *so){
     so->handle = LoadLibrary(so->filename);
     if(so->handle == NULL){
+	   slog_write(LL_FATAL, "customer so load failed handle is NULL path:%s", so->filename);
        return -1;
     }
     return 0;
@@ -69,6 +70,29 @@ int so_topup_reload(SoBase *so){
     so->create = (create_t)GetProcAddress(so->handle, "m_create");
     so->destory = (destroy_t)GetProcAddress(so->handle, "m_destroy");
     if (so->create == NULL || so->destory == NULL){
+        so_free(so);
+        pthread_rwlock_unlock(&so->lock);
+        return -1;
+    }
+    so->file_time = get_file_time(so->filename);
+    pthread_rwlock_unlock(&so->lock);
+    return 0;
+}
+
+int so_customer_reload(SoBase *so){
+    pthread_rwlock_wrlock(&so->lock);
+    if(so->handle != NULL){
+        so_free((SoBase*)so);
+    }
+    if(so_load(so)){
+        pthread_rwlock_unlock(&so->lock);
+		slog_write(LL_FATAL, "customer so load failed where so_load");
+        return -1;
+    }
+    so->create = (create_t)GetProcAddress(so->handle, "customer_create");
+    so->destory = (destroy_t)GetProcAddress(so->handle, "customer_destroy");
+    if (so->create == NULL || so->destory == NULL){
+		slog_write(LL_FATAL, "customer so load failed where so->create or so->destory");
         so_free(so);
         pthread_rwlock_unlock(&so->lock);
         return -1;

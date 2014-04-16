@@ -18,14 +18,6 @@
 using namespace std;
 using namespace  ::topupinterface;
 
-enum RequestType{
-	CHARGE = 0,
-	QUERY,
-	BALANCE,
-	CANCEL,
-	NOTIFY	
-};
-
 
 class TopupImpl: public TopupBase{
 	public:
@@ -47,7 +39,7 @@ class TopupImpl: public TopupBase{
 		//天猫查询接口
 		int TmallQuery(string &response);
 		//天猫回调接口，向TMALL发送回调请求
-		int TmallNotify(string &response);
+		int TmallNotify();
 		//天猫取消接口
 		int TmallCancel(string &response);
 		//查询余额接口，第三方订购商使用
@@ -88,13 +80,9 @@ class TopupImpl: public TopupBase{
 };
 
 //动态链接库调用接口，用于创建相应实例
-extern "C" TopupBase* m_create() {
-	    return new TopupImpl;
-}
+extern "C" TopupBase* m_create();
 
 //动态链接库调用接口，用于销毁相应的实例,可不可以通过得到的指针直接销毁
-extern "C" void m_destroy(TopupBase* p) {
-	    delete p;
-}
+extern "C" void m_destroy(TopupBase* p);
 
 #endif //__TOPUP_IMPL_H

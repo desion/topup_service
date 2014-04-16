@@ -17,13 +17,6 @@
 using namespace std;
 using namespace  ::topupinterface;
 
-enum RequestType{
-	CHARGE = 0,
-	QUERY,
-	BALANCE,
-	CANCEL,
-	NOTIFY	
-};
 
 
 class ChannelImpl: public ChannelBase{

@@ -8,7 +8,9 @@
 
 #include "ChannelImpl.h"
 #include "GlobalConfig.h"
+#include <boost/shared_ptr.hpp>
 using namespace std;
+using boost::shared_ptr;
 
 ChannelImpl::ChannelImpl(){
 
@@ -23,8 +25,10 @@ int ChannelImpl::ChargeRequest(TopupInfo *m_topup_info){
 	//foreach the channels
 	vector<ChannelInfo>::iterator channels = m_topup_info->channels.begin();
 	for(; channels != m_topup_info->channels.end(); ++channels){
-		if(m_topup_info->interfaceName == ""){
-	
+		if(m_topup_info->interfaceName == "SLS_INTERFACE"){
+			shared_ptr<ChannelSLS> channel_sls(new ChannelSLS);
+			string result;
+			ret = channel_sls->Charge(m_topup_info, result);
 		}else if(m_topup_info->interfaceName == ""){
 	
 		}else{

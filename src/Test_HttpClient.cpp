@@ -11,6 +11,7 @@
 #include "ConnectionManager.h"
 #include "hiredis/hiredis.h"
 #include "RedisClient.h"
+#include <dlfcn.h> 
 using namespace std;
 using namespace boost;
 
@@ -216,7 +217,6 @@ int main(int argc, char *argv[]){
 		printf("key:%s\tvalue:%s\n", it->first.c_str(), it->second.c_str());
 	}
 	*/
-
 	TEST_CONNECTION();
 	TEST_SIGN();
 	int i = 10;
@@ -237,6 +237,9 @@ int main(int argc, char *argv[]){
 	redisclient->connect("127.0.0.1", 6379);
 	bool ret = redisclient->ping();
 	assert(ret == true);
+	void *handle = dlopen("./libcustomer.so", RTLD_LAZY);
+	fprintf (stderr, "%s\n", dlerror()); 
+	assert(handle != NULL);
 
 	//TEST_LAKEPARAM_CHARGE();
 	return 0;

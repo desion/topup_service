@@ -22,6 +22,7 @@ bool httpclent_perform(const char *url, const char *params, PARSE_FUNCTION parse
 	curl_global_init(CURL_GLOBAL_ALL);
 	curl = curl_easy_init();
 	bool ret = true;
+	long http_code = 0;
 	if(curl) {
 		curl_easy_setopt(curl, CURLOPT_URL, url);
 	    /* Now specify the POST data */ 
@@ -41,6 +42,11 @@ bool httpclent_perform(const char *url, const char *params, PARSE_FUNCTION parse
 	          curl_easy_strerror(res));
 			ret = false;
 		}
+		res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE , &http_code);
+	    if(res != CURLE_OK || http_code != 200){
+			fprintf(stderr, "curl_easy_perform() fail http conde: %l\n",http_code);
+			ret = false;
+		}	
 				 
 	    /* always cleanup */ 
 	    curl_easy_cleanup(curl);
