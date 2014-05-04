@@ -44,7 +44,7 @@ bool httpclent_perform(const char *url, const char *params, PARSE_FUNCTION parse
 		}
 		res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE , &http_code);
 	    if(res != CURLE_OK || http_code != 200){
-			fprintf(stderr, "curl_easy_perform() fail http conde: %l\n",http_code);
+			fprintf(stderr, "curl_easy_perform() fail http conde: %llu\n",http_code);
 			ret = false;
 		}	
 				 

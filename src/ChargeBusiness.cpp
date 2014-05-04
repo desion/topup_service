@@ -69,6 +69,7 @@ int ChargeBusiness::SelectBestChannel(int value, int province, int op, vector<Ch
 			channel.repeat = rs->getInt(5);
 			channel.discount = rs->getFloat(6);
 			channel.interfaceName = rs->getString(7);
+			channel.pid = rs->getString(8);
 			channels.push_back(channel);
 			ret++;
 		}

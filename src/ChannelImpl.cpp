@@ -12,6 +12,8 @@
 using namespace std;
 using boost::shared_ptr;
 
+extern LOG_HANDLE g_logHandle;
+
 ChannelImpl::ChannelImpl(){
 
 }
@@ -20,17 +22,29 @@ ChannelImpl::~ChannelImpl(){
 
 }
 
+///到代理商的充值请求
 int ChannelImpl::ChargeRequest(TopupInfo *m_topup_info){
 	int ret = 0;
 	//foreach the channels
 	vector<ChannelInfo>::iterator channels = m_topup_info->channels.begin();
+	seLogEx(g_logHandle, "[ChannelImpl::ChargeRequest#%lu] channl num:%d",pthread_self(), m_topup_info->channels.size());
+	int charge_times = 0;
 	for(; channels != m_topup_info->channels.end(); ++channels){
-		if(m_topup_info->interfaceName == "SLS_INTERFACE"){
+		//手拉手订单处理
+		charge_times++;
+		seLogEx(g_logHandle, "[ChargeRequest#%lu] NO.%d charge channel:%s"
+				,pthread_self(), charge_times, channels->interfaceName.c_str());
+
+		if(strcmp(channels->interfaceName.c_str(), GlobalConfig::Instance()->p_sls_interface) == 0){
+			//手拉手订单处理
 			shared_ptr<ChannelSLS> channel_sls(new ChannelSLS);
 			string result;
 			ret = channel_sls->Charge(m_topup_info, result);
-		}else if(m_topup_info->interfaceName == ""){
-	
+		}else if(strcmp(m_topup_info->interfaceName.c_str(), GlobalConfig::Instance()->p_llww_interface) == 0){
+			//来来往往订单处理
+			shared_ptr<ChannelLLWW> channel_llww(new ChannelLLWW);
+			string result;
+			ret = channel_llww->Charge(m_topup_info, result);
 		}else{
 		
 		}
@@ -41,15 +55,18 @@ int ChannelImpl::ChargeRequest(TopupInfo *m_topup_info){
 }
 
 //ret = 0 normal
+//将订单的状态直接反映到TopupInfo参数中
 int ChannelImpl::QueryRequest(TopupInfo *m_topup_info){
 	int ret = 0;
 	string result;
+	seLogEx(g_logHandle, "[QueryRequest#%lu] query channel:%s",pthread_self(), m_topup_info->interfaceName.c_str());
 	if(strcmp(m_topup_info->interfaceName.c_str(), GlobalConfig::Instance()->p_sls_interface) == 0){
-		Channel *channel = new ChannelSLS();
-		int ret = channel->Query(m_topup_info, result);
+		shared_ptr<Channel> channel(new ChannelSLS());
+		ret = channel->Query(m_topup_info, result);
 		///parse result
 	}else if(strcmp(m_topup_info->interfaceName.c_str(),GlobalConfig::Instance()->p_llww_interface)){
-	
+		shared_ptr<Channel> channel(new ChannelLLWW());
+		ret = channel->Query(m_topup_info, result);	
 	}else if(strcmp(m_topup_info->interfaceName.c_str(),GlobalConfig::Instance()->p_yeepay_interface)){
 
 	}else{

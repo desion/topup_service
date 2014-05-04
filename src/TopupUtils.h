@@ -77,6 +77,7 @@ typedef struct ChannelInfo{
 	string interfaceName;	//接口标识
 	int priority;			//优先级
 	int repeat;				//重试次数
+	string pid;				//代理商用产品id
 } ChannelInfo;
 
 typedef struct QsInfo{
@@ -110,12 +111,13 @@ typedef struct TopupInfo{
 	struct timeval start_time;			//开始处理时间
 	OrderStatus status;
 	string update_time;
-	int notify;
+	int notify;							//是否通知
 	int channelId;
-	string interfaceName;
+	string interfaceName;				//当前使用接口标识
 	int repeat;
-	string channelSname;
-	uint32_t create_time;
+	string channelSname;				//当前使用代理商简称
+	uint32_t create_time;				//订单创建时间
+	string pid;							//当前使用代理商产品id
 }TopupInfo;
 
 

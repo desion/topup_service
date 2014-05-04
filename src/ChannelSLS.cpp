@@ -13,40 +13,11 @@
 #include <tinyxml/tinystr.h>
 
 using namespace std;
+extern LOG_HANDLE g_logHandle;
 
 const char* ChannelSLS::key = "shoulashou0571";                                                                                                                                                      
 const char* ChannelSLS::userid = "84001";
 const char* ChannelSLS::pwd = "123456";
-/*
-bool ChannelSLS::Init(){
-	errors.insert(make_pair("001", "用户不存在"));
-	errors.insert(make_pair("002", "交易密码错误"));
-	errors.insert(make_pair("003", "用户已禁用"));
-	errors.insert(make_pair("004", "余额不足"));
-	errors.insert(make_pair("005", "订单号已存在"));
-	errors.insert(make_pair("006", "系统异常"));
-	errors.insert(make_pair("101", "数据库错误"));
-	errors.insert(make_pair("201", "IP拒绝访问"));
-	errors.insert(make_pair("202", "订单号格式错误"));
-	errors.insert(make_pair("203", "通知URL错误"));
-	errors.insert(make_pair("301", "暂无此面额缴费产品"));
-	errors.insert(make_pair("401", "缺少参数"));
-	errors.insert(make_pair("402", "参数错误"));
-	errors.insert(make_pair("403", "充值金额错误"));
-	errors.insert(make_pair("404", "充值号码错误"));
-	errors.insert(make_pair("405", "签名错误"));
-	errors.insert(make_pair("501", "余额查询失败"));
-	errors.insert(make_pair("555", "余额查询成功"));
-	errors.insert(make_pair("600", "订单号不存在"));
-	errors.insert(make_pair("601", "充值成功"));
-	errors.insert(make_pair("602", "充值失败"));
-	errors.insert(make_pair("603", "订单正在处理"));
-	errors.insert(make_pair("610", "订单状态查询失败"));
-	return true;
-}
-*/
-
-
 string ChannelSLS::GetErrMsg(string code){
 	map<string, string>::iterator iter;
 	if((iter = errors.find(code)) != errors.end()){
@@ -99,7 +70,6 @@ size_t parse_charge_response(void *buffer, size_t size, size_t count, void *args
 //ret = 1 failed
 int ChannelSLS::Charge(TopupInfo *topup_info, string &result)
 {
-	TP_WRITE_LOG(topup_info, "[ChannelSLS][Charge] CALL");
 	int ret = 0;
 	int retry = 5;
 	char ret_code[5] = {0};
@@ -117,6 +87,7 @@ int ChannelSLS::Charge(TopupInfo *topup_info, string &result)
 	str2md5(sigbuf, siglen, md5str);
 	len += sprintf(buf + len, "&Sign=%s", md5str);
 	buf[len] = '\0';
+	seLogEx(g_logHandle, "[ChannelSLS#%lu] [Charge] CALL:%s",pthread_self(), buf);
 	while(retry >=0 && ret != 0){
 		retry--;
 		if(httpclent_perform(charge_interface, buf, parse_charge_response, (void*)&ret_code)){

@@ -196,6 +196,7 @@ int str2md5(const char* src, int len,char *md5str){
 }*/
 void serialize_topupinfo(TopupInfo* topup_info, string &strout){
 	Json::Value root;
+	Json::Value channel_array;
 	root["coopId"] = topup_info->qs_info.coopId;						//商家编号
 	root["tbOrderNo"] = topup_info->qs_info.tbOrderNo;					//淘宝的订单号
 	root["coopOrderNo"] = topup_info->qs_info.coopOrderNo;				//系统生成订单号
@@ -210,9 +211,31 @@ void serialize_topupinfo(TopupInfo* topup_info, string &strout){
 	root["op"] = topup_info->qs_info.op;
 	root["province"] = topup_info->qs_info.province;
 	root["status"] = topup_info->status;
+	root["interfaceName"] = topup_info->interfaceName;
 	root["creteTime"] = (uint32_t)time(NULL);
 	root["updateTime"] = (uint32_t)time(NULL);
 	//strout = root.toStyledString();
+	vector<ChannelInfo>::iterator iter = topup_info->channels.begin();
+	for(; iter != topup_info->channels.end(); ++iter){
+		Json::Value channel_entity;
+		//渠道ID
+		channel_entity["channelId"] = iter->channelId;
+		//渠道名称
+		channel_entity["channelName"] = iter->channelName;
+		//渠道简称
+		channel_entity["sname"] = iter->sname;
+		//折扣
+		channel_entity["discount"] = iter->discount;
+		//接口标识
+		channel_entity["interfaceName"] = iter->interfaceName;
+		//优先级
+		channel_entity["priority"] = iter->priority;
+		//重试次数
+		channel_entity["repeat"] = iter->repeat;
+		channel_entity["pid"] = iter->pid;
+		channel_array.append(channel_entity);
+	}
+	root["channels"] = channel_array;
 	Json::FastWriter writer;
 	strout = writer.write(root);
 }
@@ -251,5 +274,38 @@ void deserialize_topupinfo(const string& json, TopupInfo* topup_info){
             topup_info->status = (OrderStatus)root["status"].asInt(); 
         if(!root["creteTime"].isNull())
             topup_info->create_time = root["creteTime"].asInt(); 
+        if(!root["interfaceName"].isNull())
+            topup_info->interfaceName = root["interfaceName"].asString(); 
+		if(!root["channels"].isNull()){
+			Json::Value channelArray = root["channels"];
+			for(int i = 0; i < channelArray.size(); i++){
+				ChannelInfo channel_info;
+				//渠道ID
+				if(channelArray[i].isMember("channelId"))
+					channel_info.channelId = channelArray[i]["channelId"].asInt();
+				//渠道名称
+				if(channelArray[i].isMember("channelName"))
+					channel_info.channelName = channelArray[i]["channelName"].asString();
+				//渠道简称
+				if(channelArray[i].isMember("sname"))
+					channel_info.sname = channelArray[i]["sname"].asString();
+				//折扣
+				if(channelArray[i].isMember("discount"))
+					channel_info.discount = channelArray[i]["discount"].asDouble();
+				//接口标识
+				if(channelArray[i].isMember("interfaceName"))
+					channel_info.interfaceName = channelArray[i]["interfaceName"].asString();
+				//优先级
+				if(channelArray[i].isMember("priority"))
+					channel_info.priority = channelArray[i]["priority"].asInt();
+				//重试次数
+				if(channelArray[i].isMember("repeat"))
+					channel_info.repeat = channelArray[i]["repeat"].asInt();
+				if(channelArray[i].isMember("pid"))
+					channel_info.pid = channelArray[i]["pid"].asString();
+
+				topup_info->channels.push_back(channel_info);
+			}
+		}
 	}
 }

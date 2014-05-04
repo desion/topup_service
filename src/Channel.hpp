@@ -72,3 +72,17 @@ class ChannelSLS : public Channel{
 		static const char* pwd;
 		map<string, string> errors;
 };
+
+class ChannelLLWW : public Channel{
+	public:
+		int Charge(TopupInfo *topup_info, string &result);
+		        
+	    int Query(TopupInfo *topup_info, string &result);
+				        
+	    int Balance(TopupInfo *topup_info, double &balance);
+				        
+	    int AcceptNotify(TopupInfo *topup_info, string &result);
+	private:
+		static const char* userid;
+		static const char* pwd;
+};

@@ -133,7 +133,7 @@ bool OpenProtocol(const string& host,const int port)
         return true;
     } catch (TException &tx) {
 		cout << tx.what() << endl;
-        sp_transport->close();
+        //sp_transport->close();
         return false;
     }
 }

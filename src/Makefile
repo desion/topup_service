@@ -28,7 +28,7 @@ HANDLE_OBJS = OrderHandler.o TopupHandleMain.o GlobalConfig.o \
 			  BaseBusiness.o ChannelSLS.o ConnectionManager.o \
 			  HttpClient.o ChannelImpl.o TopupImpl.o \
 			  $(INTERFACE_DIR)/TopupInterface_types.o \
-			 TopupCustomer.o 
+			  TopupCustomer.o ChannelLLWW.o 
 
 
 TOPUP_OBJS = TopupImpl.o \
