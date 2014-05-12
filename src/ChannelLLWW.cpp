@@ -18,11 +18,6 @@ extern LOG_HANDLE g_logHandle;
 const char* ChannelLLWW::userid = "1001092";
 const char* ChannelLLWW::pwd = "zkcl20128848";
 
-typedef struct req_result{
-	int status;
-	char msg[256];
-	char order_no[128];
-}req_result;
 ///解析订单查询返回的xml
 size_t parse_llww_response(void *buffer, size_t size, size_t count, void *args){
 #ifdef DEBUG	
@@ -31,14 +26,14 @@ size_t parse_llww_response(void *buffer, size_t size, size_t count, void *args){
 	TiXmlDocument doc;
 	req_result *ret_info = (req_result*)args;
     if(!doc.Parse((const char*)buffer)){
-		seErrLogEx(g_logHandle, "[ChannelLLWW#%lu] [Query] failed@can't parse xml format:",pthread_self(), (char*)buffer);
+		seErrLogEx(g_logHandle, "[ChannelLLWW#%lu] [Query] failed@can't parse xml format:%s",pthread_self(), (char*)buffer);
 		ret_info->status = -1;
 		return size * count;
     }
     TiXmlHandle docHandle(&doc);
     TiXmlElement* status_ele = docHandle.FirstChild("root").FirstChild("result").ToElement();
 	if(status_ele == NULL){
-		seErrLogEx(g_logHandle, "[ChannelLLWW#%lu] [Query] failed@xml formar err:",pthread_self(), (char*)buffer);
+		seErrLogEx(g_logHandle, "[ChannelLLWW#%lu] [Query] failed@xml formar err:%s",pthread_self(), (char*)buffer);
 		ret_info->status = -1;
 		return size * count;
 	}
@@ -49,7 +44,7 @@ size_t parse_llww_response(void *buffer, size_t size, size_t count, void *args){
 	}else{
 		status_ele = docHandle.FirstChild("root").FirstChild("errMsg").ToElement();
 		if(status_ele == NULL){
-			seErrLogEx(g_logHandle, "[ChannelLLWW#%lu] [Query] failed@xml formar err:",pthread_self(), (char*)buffer);
+			seErrLogEx(g_logHandle, "[ChannelLLWW#%lu] [Query] failed@xml formar err:%s",pthread_self(), (char*)buffer);
 			ret_info->status = -1;
 			return size * count;
 		}
@@ -67,14 +62,14 @@ size_t parse_llww_charge_response(void *buffer, size_t size, size_t count, void 
 	TiXmlDocument doc;
 	req_result *ret_info = (req_result*)args;
     if(!doc.Parse((const char*)buffer)){
-		seErrLogEx(g_logHandle, "[ChannelLLWW#%lu] [Charge] failed@can't parse xml format:",pthread_self(), (char*)buffer);
+		seErrLogEx(g_logHandle, "[ChannelLLWW#%lu] [Charge] failed@can't parse xml format:%s",pthread_self(), (char*)buffer);
 		ret_info->status = 2;
 		return size * count;
     }
     TiXmlHandle docHandle(&doc);
     TiXmlElement* status_ele = docHandle.FirstChild("root").FirstChild("result").ToElement();
 	if(status_ele == NULL){
-		seErrLogEx(g_logHandle, "[ChannelLLWW#%lu] [Charge] failed@xml formar err:",pthread_self(), (char*)buffer);
+		seErrLogEx(g_logHandle, "[ChannelLLWW#%lu] [Charge] failed@xml formar err:%s",pthread_self(), (char*)buffer);
 		ret_info->status = 2;
 		return size * count;
 	}
@@ -84,7 +79,7 @@ size_t parse_llww_charge_response(void *buffer, size_t size, size_t count, void 
 		ret_info->status = 0;
 		status_ele = docHandle.FirstChild("root").FirstChild("orderNO").ToElement();
 		if(status_ele == NULL){
-			seErrLogEx(g_logHandle, "[ChannelLLWW#%lu] [Charge] failed@xml formar err:",pthread_self(), (char*)buffer);
+			seErrLogEx(g_logHandle, "[ChannelLLWW#%lu] [Charge] failed@xml formar err:%s",pthread_self(), (char*)buffer);
 			ret_info->status = 2;
 			return size * count;
 		}
@@ -93,7 +88,7 @@ size_t parse_llww_charge_response(void *buffer, size_t size, size_t count, void 
 	}else{
 		status_ele = docHandle.FirstChild("root").FirstChild("errMsg").ToElement();
 		if(status_ele == NULL){
-			seErrLogEx(g_logHandle, "[ChannelLLWW#%lu] [Charge] failed@xml formar err:",pthread_self(), (char*)buffer);
+			seErrLogEx(g_logHandle, "[ChannelLLWW#%lu] [Charge] failed@xml formar err:%s",pthread_self(), (char*)buffer);
 			ret_info->status = 2;
 			return size * count;
 		}
@@ -110,7 +105,7 @@ int ChannelLLWW::Charge(TopupInfo *topup_info, string &result)
 {
 	int ret = 0;
 	int retry = 0;
-	req_result req_ret;;
+	req_result req_ret;
 	int len = 0, siglen = 0;
 	char buf[2048] = {0};
 	char sigbuf[2048] = {0};
@@ -132,19 +127,23 @@ int ChannelLLWW::Charge(TopupInfo *topup_info, string &result)
 		if(httpclent_perform(charge_interface, buf, parse_llww_charge_response, (void*)&req_ret)){
 			if(req_ret.status == 0){
 				ret = 0;
-				seLogEx(g_logHandle, "[ChannelLLWW#%lu] [Charge] success@%d:%s", retry, buf);
+				seLogEx(g_logHandle, "[ChannelLLWW#%lu] [Charge] success@%d:%s",pthread_self(), retry, buf);
 				break;
 			}else{
 				ret = 1;
-				seLogEx(g_logHandle, "[ChannelLLWW#%lu] [Charge] failed@%d:%s-%s", retry, buf, req_ret.msg);
+				seLogEx(g_logHandle, "[ChannelLLWW#%lu] [Charge] failed@%d:%s-%s",pthread_self(), retry, buf, req_ret.msg);
 				continue;
 			}
 		}else{
 			ret = 1;
-			seLogEx(g_logHandle, "[ChannelLLWW#%lu] [Charge] failed@%d:%s-httpclent_perform", retry, buf);
+			seLogEx(g_logHandle, "[ChannelLLWW#%lu] [Charge] failed@%d:%s-httpclent_perform",pthread_self(), retry, buf);
 			continue;
 		}
 	}
+	//稳妥起见订单失败后，查询订单是否真的失败
+	int query_status = Query(topup_info, result);
+	if(query_status == 0 || query_status == 1 || query_status == 2)
+		ret = 0;
 	return ret;
 }
 

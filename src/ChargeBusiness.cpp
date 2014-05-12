@@ -104,21 +104,25 @@ int ChargeBusiness::CreateTmallOrder(TopupInfo *topupInfo, ChannelInfo &channelI
 		stmt->setString(5, systemNo);
 		stmt->setString(6, systemNo);
 		stmt->setString(7, topupInfo->qs_info.tbOrderNo);
+		//订单状态
 		stmt->setInt(8, 1);
 		string time_str;
-		int ret = get_time_now("%Y/%m/%d %H:%M:%S", time_str);
-		if(ret < 18){
+		int len = get_time_now("%Y/%m/%d %H:%M:%S", time_str);
+		if(len < 18){
 			conn->terminateStatement(stmt);
 			return -3;
 		}
 		stmt->setString(9, time_str);
 		stmt->setString(10, time_str);
+		//是否通知
 		stmt->setInt(11, 0);
+		//订单来源
 		stmt->setInt(12, 1);
 		stmt->setInt(13, topupInfo->qs_info.op);
 		stmt->setFloat(14, topupInfo->qs_info.sum / topupInfo->qs_info.cardNum);
-		stmt->setFloat(15, topupInfo->qs_info.price);
-		stmt->setFloat(16,topupInfo->qs_info.price - topupInfo->qs_info.sum / topupInfo->qs_info.cardNum);
+		int total_value = topupInfo->qs_info.value * topupInfo->qs_info.cardNum;
+		stmt->setFloat(15, total_value * channelInfo.discount);
+		stmt->setFloat(16,topupInfo->qs_info.sum - total_value * channelInfo.discount);
 		stmt->setInt(17, channelInfo.channelId);
 		stmt->executeUpdate();
 		//加入处理队列
@@ -204,10 +208,10 @@ int ChargeBusiness::UpdateOrderStatus(TopupInfo *topupInfo){
 		}
 		string ts;
 		get_time_now("%Y/%m/%d %H:%M:%S", ts);
-		int notify = 1;
+		int notify = topupInfo->notify;
 		stmt = conn->createStatement(SQL_UPDATE_STATUS);
 		stmt->setAutoCommit(false);
-		string tbOrderNo = topupInfo->qs_info.tbOrderNo;
+		string tbOrderNo = topupInfo->qs_info.coopOrderNo;
 		stmt->setInt(1, status);
 		stmt->setInt(2, notify);
 		stmt->setString(3, ts);
@@ -224,6 +228,110 @@ int ChargeBusiness::UpdateOrderStatus(TopupInfo *topupInfo){
 	if(stmt)
 		conn->terminateStatement(stmt);
 	return ret;
+}
+
+int ChargeBusiness::UpdateChannel(TopupInfo *topupInfo){
+	int ret = 0;
+	Statement *stmt = NULL;
+	try{
+		stmt = conn->createStatement(SQL_UPDATE_CHANNEL);
+		stmt->setAutoCommit(false);
+		string tbOrderNo = topupInfo->qs_info.coopOrderNo;
+		stmt->setInt(1, topupInfo->channelId);
+		int total_value = topupInfo->qs_info.value * topupInfo->qs_info.cardNum;
+		stmt->setFloat(2, total_value * topupInfo->channel_discount);
+		stmt->setFloat(3, topupInfo->qs_info.sum - total_value * topupInfo->channel_discount);
+		stmt->setString(4, tbOrderNo);
+		stmt->executeUpdate();
+	}catch(SQLException &sqlExcp){
+		HandleException(sqlExcp);
+		ret = -1;
+	}catch(std::exception &e){
+		HandleException(e);
+		ret = -1;
+	}
+	Finish();
+	if(stmt)
+		conn->terminateStatement(stmt);
+	return ret;
+}
+
+int ChargeBusiness::CheckAndBalance(TopupInfo *topupInfo){
+	int ret = 0;
+	Statement *stmt = NULL;
+	try{
+		stmt = conn->createStatement(SQL_BALANCE_UPDATE);
+		stmt->setAutoCommit(false);
+		string tbOrderNo = topupInfo->qs_info.coopOrderNo;
+		stmt->setString(1, topupInfo->qs_info.coopId);
+		ResultSet *rs = stmt->executeQuery();
+		double banlance = 0.0;
+		bool has_result = false;
+		while(rs->next())
+		{
+		    banlance = rs->getDouble(2);
+			has_result = true;
+	    }
+		if(!has_result){
+			errors.push_back(string("Exception:can't find customer info!"));
+			ret = 2;		
+		}
+		if(topupInfo->qs_info.sum > banlance)
+		{
+			//余额不足
+			ret =  1;
+		}
+		else
+		{
+			stmt = conn->createStatement(SQL_UPDATE_CUSTOMER_BALANCE);
+			stmt->setAutoCommit(false);
+			banlance = banlance - topupInfo->qs_info.sum;
+			stmt->setDouble(1, banlance);
+			stmt->setString(1, topupInfo->qs_info.coopId);
+			stmt->executeUpdate();
+		}
+	}catch(SQLException &sqlExcp){
+		HandleException(sqlExcp);
+		ret = -1;
+	}catch(std::exception &e){
+		HandleException(e);
+		ret = -1;
+	}
+	Finish();
+	if(stmt)
+		conn->terminateStatement(stmt);
+	return ret;	
+}
+	
+int ChargeBusiness::GetBalance(string userid, double &balance){
+	int ret = 0;
+	Statement *stmt = NULL;
+	try{
+		stmt = conn->createStatement(SQL_BALANCE_UPDATE);
+		stmt->setAutoCommit(false);
+		stmt->setString(1, userid);
+		ResultSet *rs = stmt->executeQuery();
+		bool has_result = false;
+		while(rs->next())
+		{
+		    balance = rs->getDouble(2);
+			has_result = true;
+	    }
+		if(!has_result){
+			errors.push_back(string("Exception:can't find customer info!"));
+			ret = 1;		
+		}
+	}catch(SQLException &sqlExcp){
+		HandleException(sqlExcp);
+		ret = -1;
+	}catch(std::exception &e){
+		HandleException(e);
+		ret = -1;
+	}
+	Finish();
+	if(stmt)
+		conn->terminateStatement(stmt);
+	return ret;	
 }
 
 int ChargeBusiness::NotifyOrder(TopupInfo *topupInfo){

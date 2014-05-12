@@ -18,16 +18,15 @@ using namespace std;
 
 class TopupServer{
 	protected:
-		virtual int ParseParam(int argc, char ** argv);
-		
+		//帮助信息		
 		virtual void PrintHelp();
-
+		//版本信息
 		void PrintVersion();
-		
+		//log初始化
 		virtual int InitLog();
-		
+		//全局配置初始化
 		virtual void GlobalInit();
-		
+		//启动服务
 		int TPServe();
 		
 	public:
@@ -44,10 +43,11 @@ class TopupServer{
 		
 		virtual int Serve(int argc, char ** argv);
 
-		virtual int CallLog(TopupInfo* topup_info); 
+		//virtual int CallLog(TopupInfo* topup_info); 
 
 		virtual void SetSeqId(uint32_t *seq_id);
 
+		virtual int ParseParam(int argc, char ** argv);
 	public:
 		const char *confPath;			//配置文件路径
 		const char *confName;			//配置文件名
@@ -62,24 +62,9 @@ class TopupServer{
 		ConnectionManager *conn_manager;	//数据库连接池
 		uint32_t seq_id;				//系统序列号，用于标记请求
 		pthread_mutex_t seq_lock;
-		LOG_HANDLE  service_log;		//日志文件句柄
 
 };
 
 extern TopupServer *P_TPServer;
-
-extern int charge_count;
-extern int query_count;
-extern int notify_count;
-
-extern pthread_mutex_t charge_lock;
-extern pthread_cond_t charge_cond;
-
-extern pthread_mutex_t query_lock;
-extern pthread_cond_t query_cond;
-
-extern pthread_mutex_t notify_lock;
-extern pthread_cond_t notify_cond;
-
 
 #endif //__TOPUP_SERVER_H

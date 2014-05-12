@@ -37,42 +37,51 @@ size_t parse_response(void *buffer, size_t size, size_t count, void *args){
 	return size * count;
 }
 
-size_t parse_charge_response(void *buffer, size_t size, size_t count, void *args){
+size_t parse_sls_charge_response(void *buffer, size_t size, size_t count, void *args){
 #ifdef DEBUG
 	fprintf(stdout, "%s\n", (char*)buffer);
 #endif
 	TiXmlDocument doc;
+	req_result *ret_info = (req_result*)args;
     if(!doc.Parse((const char*)buffer)){
-        *(int*)args = -1;
-        return size * count;
+		seErrLogEx(g_logHandle, "[ChanneSLS#%lu] [Charge] failed@can't parse xml format:%s",pthread_self(), (char*)buffer);
+		ret_info->status = 2;
+		return size * count;
     }
     TiXmlHandle docHandle(&doc);
     TiXmlElement* status_ele = docHandle.FirstChild("Response").FirstChild("Result").ToElement();
+	if(status_ele == NULL){
+		seErrLogEx(g_logHandle, "[ChannelSLS#%lu] [Charge] failed@xml formar err:%s",pthread_self(), (char*)buffer);
+		ret_info->status = 2;
+		return size * count;
+	}
     const char *status = status_ele->GetText();
 	int result = atoi(status);
-	char *code = (char*)args;
-	strcpy(code, status);
-	code[3] = '\0';
+	//result==1提交成功
 	if(result == 1){
-		sprintf(code, "000");
-	}else if(result == 2){
-		status_ele = docHandle.FirstChild("Response").FirstChild("ErrCode").ToElement();
-		status = status_ele->GetText();
-		strcpy(code, status);
+		ret_info->status = 0;
+		seErrLogEx(g_logHandle, "[ChannelSLS#%lu] [Charge] sucess xml:%s",pthread_self(), (char*)buffer);
 	}else{
-		sprintf(code, "006");
+		status_ele = docHandle.FirstChild("Response").FirstChild("ErrCode").ToElement();
+		if(status_ele == NULL){
+			seErrLogEx(g_logHandle, "[ChannelSLS#%lu] [Charge] failed@xml formar err:%s",pthread_self(), (char*)buffer);
+			ret_info->status = 2;
+			return size * count;
+		}
+		ret_info->status = 1;
+		status = status_ele->GetText();
+		strncpy(ret_info->msg, status, 256);
 	}
-	code[3] = '\0';
-    return size * count;
+	return size * count;
 }
 
 //ret = 0 success
 //ret = 1 failed
 int ChannelSLS::Charge(TopupInfo *topup_info, string &result)
 {
-	int ret = 0;
-	int retry = 5;
-	char ret_code[5] = {0};
+	int ret = 1;
+	int retry = 0;
+	req_result req_ret;
 	int len = 0, siglen = 0;
 	char buf[2048] = {0};
 	char sigbuf[2048] = {0};
@@ -88,18 +97,21 @@ int ChannelSLS::Charge(TopupInfo *topup_info, string &result)
 	len += sprintf(buf + len, "&Sign=%s", md5str);
 	buf[len] = '\0';
 	seLogEx(g_logHandle, "[ChannelSLS#%lu] [Charge] CALL:%s",pthread_self(), buf);
-	while(retry >=0 && ret != 0){
-		retry--;
-		if(httpclent_perform(charge_interface, buf, parse_charge_response, (void*)&ret_code)){
-			if(strcmp(ret_code, "000") == 0){
+	while(retry <= 5 && ret != 0){
+		retry++;
+		if(httpclent_perform(charge_interface, buf, parse_sls_charge_response, (void*)&req_ret)){
+			if(req_ret.status == 0){
 				ret = 0;
+				seLogEx(g_logHandle, "[ChannelSLS#%lu] [Charge] success@%d:%s", pthread_self(), retry, buf);
 				break;
 			}else{
 				ret = 1;
+				seLogEx(g_logHandle, "[ChannelSLS#%lu] [Charge] failed@%d:%s-%s",pthread_self(), retry, buf, req_ret.msg);
 				continue;
 			}
 		}else{
 			ret = 1;
+			seLogEx(g_logHandle, "[ChannelSLS#%lu] [Charge] failed@%d:%s-httpclent_perform",pthread_self(), retry, buf);
 			continue;
 		}
 	}

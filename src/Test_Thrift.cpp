@@ -15,7 +15,6 @@
 
 extern char **environ;		//FCGI所有环境变量
 
-#include "fcgi_stdio.h"
 #include <protocol/TBinaryProtocol.h>
 #include <server/TSimpleServer.h>
 #include <transport/TServerSocket.h>
@@ -24,8 +23,8 @@ extern char **environ;		//FCGI所有环境变量
 #include <concurrency/PosixThreadFactory.h>
 #include <server/TNonblockingServer.h>
 #include <server/TThreadPoolServer.h>
-#include "Topup.h"
 #include "HttpClient.h"
+#include "Topup.h"
 #include <iostream>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -55,25 +54,6 @@ vector<pair<string, int> > serviceList;		//充值服务配置列表
 
 TopupClient *m_topupClient;					//thrift client handler
 shared_ptr<TTransport> sp_transport;		//thrift连接句柄
-/*
-// 切分字符串函数
-inline int split_string (char * s, const char * seperator, std::vector<char *> & field_vec)
-{
-      field_vec.clear();
-      if (s == NULL) return -1;
-      if (seperator == NULL) return -1;
-
-      int sep_len = strlen(seperator);
-      char * p = s;
-      field_vec.push_back(p);
-      while ((p = strstr(p, seperator)) != NULL)
-     {
-          *p = '\0';
-           p += sep_len;
-           field_vec.push_back(p);
-      }
-	  return field_vec.size();
-}*/
 
 //CGI使用配置文件加载，格式：ip\tport
 int loadServiceList(const char *path, vector<pair<string, int> > &serviceList)
@@ -110,23 +90,14 @@ int loadServiceList(const char *path, vector<pair<string, int> > &serviceList)
 	return 0;
 }
 
-//打印FCGI所有变量
-inline void PrintEnv(char *label, char **envp)
-{
-    printf("%s:<br>\n<pre>\n", label);
-    for ( ; *envp != NULL; envp++) {
-        printf("%s\n", *envp);
-    }
-    printf("</pre><p>\n");
-}
 
 //打开thrift连接
 bool OpenProtocol(const string& host,const int port)
 {
 	shared_ptr<TSocket> tsocket(new TSocket(host, port));
 	tsocket->setConnTimeout(1000);
-	tsocket->setRecvTimeout(2000);
-	tsocket->setSendTimeout(2000);
+	tsocket->setRecvTimeout(2000000);
+	tsocket->setSendTimeout(2000000);
     //shared_ptr<TTransport> socket(new TSocket(host, port));	
     shared_ptr<TTransport> socket(tsocket);
 	//sp_transport =  shared_ptr<TTransport>(new TBufferedTransport(socket));
@@ -156,11 +127,76 @@ bool CloseProtocol(){
 static void EchoXML(int status){
 	printf("<?xml version=\"1.0\" encoding=\"GBK\"?>\n");
 	printf("<topupResult>\n");
-	printf("<status>%d</status>\n", status);
-	printf("</topupResult>");
+	printf("<status>%d</status>", status);
+	printf("</topupResult>\n");
 }
 
-int main ()
+
+bool TEST_NORMAL_CHARGE(int num, char* req_buffer)
+{
+	printf("--------------------正常测试------------------\n");
+	map<string, string, cmpKeyAscii> entitys;
+	char query[2048] = {0};
+	uint64_t orderNO = num;
+	orderNO = (orderNO << 32);
+	orderNO = orderNO + (int)time(NULL);
+	uint64_t phone_no = 13693111111 + num;
+	sprintf(query, "coopId=928707139&tbOrderNo=%lu&cardId=10001&cardNum=1&customer=%lu&sum=99.02&notifyUrl=http://123.126.54.32/notify.do&tbOrderSnap=99.02|101|测试样例|测试加密",orderNO, phone_no);
+	char buf[2048];
+	char inbuf[2048] = {0};
+	char param[256] = {0};
+	strcpy(inbuf, query);
+	size_t insize = strlen(inbuf);
+	size_t outsize = 2048;
+	change_code("UTF-8", "GBK", inbuf, &insize, buf, &outsize);
+	printf("转gbk:%s\n", buf);
+	bool parse_ret = parse_params(buf, &entitys);
+	assert(parse_ret == true);
+
+	char encode_query[2048] = {0};
+	int len = 0;
+	
+	
+	map<string, string>::iterator it = entitys.begin();
+	for(;it != entitys.end(); ++it){
+		url_encode(it->second.c_str(), strlen(it->second.c_str()), param, 256);
+		printf("%s:%s:%s\n", it->first.c_str(),it->second.c_str(), param);
+		it->second = string(param);
+		len += sprintf(encode_query+len, "%s=%s&", it->first.c_str(), param);
+	}
+	encode_query[len -1] = '\0';
+	printf("encode_query:%s\n", encode_query);
+
+	
+	char md5[33] = {0};
+	char signStr[2048] = {0};
+	len = 0;
+	map<string, string, cmpKeyAscii> decode_entitys;
+	parse_ret = parse_params(encode_query, &decode_entitys);
+	it = decode_entitys.begin();
+	for(;it != decode_entitys.end(); ++it){
+		if(strcmp("sign", it->first.c_str()) == 0){
+			continue;
+		}
+		printf("PARAM:%s:%s\n", it->first.c_str(), it->second.c_str());
+		len += sprintf(signStr + len, "%s%s", it->first.c_str(), it->second.c_str());
+    }
+    len += sprintf(signStr + len, "529d9ce791e47401de40233e26d954c6");
+    printf("Sign String:%s\n", signStr);
+	str2md5(signStr,len, md5);
+    assert(strlen(md5) == 32);
+    printf("MD5:%s\n", md5);
+
+	len = strlen(encode_query);
+	len += sprintf(encode_query + len,"&sign=%s", md5);
+	encode_query[len] = '\0';
+	printf("正确url:%s\n", encode_query);
+
+	strcpy(req_buffer, encode_query);
+	return true;
+}
+
+int main (int argc, char* argv[])
 {
 	// 读取请求的post参数缓存
     char buffer[MAX_QUERY_LENGTH];
@@ -171,67 +207,32 @@ int main ()
 		cerr << "can't load serviceList\n";
 		return -1;
 	}
-	
-    while (FCGI_Accept() >= 0) {
-		// 非常重要必须人工输出header信息
-		printf("Content-type: text/xml\r\nStatus: 200 OK\r\n\r\n");
-		// 获取content长度，以此来决定读取的参数长度
-        char *contentLength = getenv("CONTENT_LENGTH");
-		char *ipstr = getenv("REMOTE_ADDR");
-		// 获取请求的URI信息，用来区分request的接口信息
-		char *uri = getenv("REQUEST_URI");
-        int len;
-
-        if (contentLength != NULL) {
-            len = strtol(contentLength, NULL, 10);
-        }
-        else {
-            len = 0;
-        }
-
-        if (len <= 0) {
-			EchoXML(NOPARAM_ERR);
-			continue;
-        }
-        else {
-			if(len >= MAX_QUERY_LENGTH){
-				EchoXML(POST_TOOLONG_ERR);
-				continue;
-			}
-			//读取post参数，最大post参数长度MAX_QUERY_LENGTH
-			int read_len = fread(buffer, 1, MAX_QUERY_LENGTH, stdin);
-			if (read_len != len){
-				EchoXML(POST_ERR);
-				continue;
-			}
-			buffer[read_len] = '\0';
-			time_t time_now;
-			time(&time_now);
-			OpenProtocol(serviceList[0].first, serviceList[0].second);
-			TopupRequest req;
-			req.query = string(buffer);
-			if(str2md5(buffer, read_len, md5str)){
-				EchoXML(POST_ERR);
-				CloseProtocol();
-				continue;
-			}
-			req.checksum = string(md5str);
-			req.version = string(TOPUP_VERSION);
-			req.ip = ipstr;
-			req.uri = uri;
-			req.itimestamp = (uint32_t)time_now;
-			string ret;
-			m_topupClient->SendRequest(ret, req);
+	for(int i = 0; i < 100; i++){
+		time_t time_now;
+		time(&time_now);
+		TEST_NORMAL_CHARGE(i, buffer);
+		OpenProtocol(serviceList[0].first, serviceList[0].second);
+		TopupRequest req;
+		req.query = string(buffer);
+		int read_len = strlen(buffer);
+		if(str2md5(buffer, read_len, md5str)){
+			EchoXML(POST_ERR);
 			CloseProtocol();
-			if(ret.empty()){
-				EchoXML(POST_ERR);
-			}else{
-				//直接输出后台返回的处理结果（XML）
-				printf("%s\n", ret.c_str());
-			}
-        }
-
-    } /* while */
-	delete m_topupClient;
+			continue;
+		}
+		req.checksum = string(md5str);
+		req.version = string(TOPUP_VERSION);
+		req.ip = string("127.0.0.1");
+		req.uri = string("/customer/pay");
+		req.itimestamp = (uint32_t)time_now;
+		string ret;
+		m_topupClient ->SendRequest(ret, req);
+		CloseProtocol();
+		if(ret.empty()){
+			EchoXML(POST_ERR);
+		}
+		//直接输出后台返回的处理结果（XML）
+		printf("%s\n", ret.c_str());
+	}
     return 0;
 }

@@ -28,7 +28,7 @@ bool httpclent_perform(const char *url, const char *params, PARSE_FUNCTION parse
 	    /* Now specify the POST data */ 
 	    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, params);
 
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 1000);
 
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, parser);
 
@@ -38,13 +38,12 @@ bool httpclent_perform(const char *url, const char *params, PARSE_FUNCTION parse
 	    res = curl_easy_perform(curl);
 	    /* Check for errors */ 
 	    if(res != CURLE_OK){
-		      fprintf(stderr, "curl_easy_perform() failed: %s\n",
-	          curl_easy_strerror(res));
+		    fprintf(stderr, "curl_easy_perform %s failed: %s\n",url, curl_easy_strerror(res));
 			ret = false;
 		}
 		res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE , &http_code);
 	    if(res != CURLE_OK || http_code != 200){
-			fprintf(stderr, "curl_easy_perform() fail http conde: %llu\n",http_code);
+			fprintf(stderr, "curl_easy_perform %s fail http code: %llu\n",url, http_code);
 			ret = false;
 		}	
 				 
@@ -93,14 +92,18 @@ bool parse_params(const char *query_str, map<string,string, cmpKeyAscii>* formDa
 		if(str == NULL){
 			if(parse_pair(pr,key, value)){
 				formData->insert(std::pair<string, string>(key, value));
+#ifdef DEBUG
 				printf("key:%s\tvalue:%s\n", key, value);
+#endif
 			}
 			break;
 		}
 		*str = '\0';
 		if(parse_pair(pr, key, value)){
 			formData->insert(std::pair<string, string>(key, value));
+#ifdef DEBUG
 			printf("key:%s\tvalue:%s\n", key, value);
+#endif
 		}
 		int diff = strlen(pr);
 		pr += diff + 1;
@@ -126,11 +129,11 @@ bool parse_query(const char *query_str, TopupInfo *topup_info){
 		str = strchr(pr, '&');
 		if(str == NULL){
 			if(parse_pair(pr,key, value)){
-				if(strcmp(key, "coopId") == 0)          //商家编号
+				if(strcmp(key, "coopId") == 0 || strcmp(key, "userId") == 0)          //商家编号
 				{
 					topup_info->qs_info.coopId = value;
 				}
-				else if(strcmp(key, "tbOrderNo") == 0)       //淘宝的订单号
+				else if(strcmp(key, "tbOrderNo") == 0 || strcmp(key, "orderNo") == 0)       //淘宝的订单号
 				{
 					topup_info->qs_info.tbOrderNo = value;
 				}
@@ -172,11 +175,11 @@ bool parse_query(const char *query_str, TopupInfo *topup_info){
 		}
 		*str = '\0';
 		if(parse_pair(pr, key, value)){
-			if(strcmp(key, "coopId") == 0)          //商家编号
+			if(strcmp(key, "coopId") == 0 || strcmp(key, "userId") == 0)          //商家编号
 			{
 				topup_info->qs_info.coopId = value;
 			}
-			else if(strcmp(key, "tbOrderNo") == 0)       //淘宝的订单号
+			else if(strcmp(key, "tbOrderNo") == 0 || strcmp(key, "orderNo") == 0)       //淘宝的订单号
 			{
 				topup_info->qs_info.tbOrderNo = value;
 			}
@@ -361,7 +364,9 @@ int url_signature(const char* url,const char* private_key, char *md5str){
 
 size_t parse_tmall_response(void *buffer, size_t size, size_t count, void *args){
 	//TODO 解析返回xml，将解析结果通过args返回
+#ifdef DEBUG
 	fprintf(stdout, "%s\n", (char*)buffer);
+#endif
 	TiXmlDocument doc;
 	if(!doc.Parse((const char*)buffer)){
 		*(int*)args = 0;
@@ -369,11 +374,15 @@ size_t parse_tmall_response(void *buffer, size_t size, size_t count, void *args)
 	}
 	TiXmlHandle docHandle(&doc);
 	TiXmlElement* status_ele = docHandle.FirstChild("response").FirstChild("tbOrderSuccess").ToElement();
-	const char *status = status_ele->GetText();
-	if(strcmp(status, "T") == 0){
-		*(int*)args = 2;
-	}else if(strcmp(status, "F") == 0){
-		*(int*)args = 1;
+	if(status_ele != NULL){
+		const char *status = status_ele->GetText();
+		if(strcmp(status, "T") == 0){
+			*(int*)args = NOTIFY_SUCCESS;
+		}else if(strcmp(status, "F") == 0){
+			*(int*)args = NOTIFY_FAIL;
+		}
+	}else{
+		*(int*)args = NOTIFY_FAIL;
 	}
 	return size * count;
 }

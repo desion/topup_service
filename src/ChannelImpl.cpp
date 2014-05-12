@@ -24,30 +24,36 @@ ChannelImpl::~ChannelImpl(){
 
 ///到代理商的充值请求
 int ChannelImpl::ChargeRequest(TopupInfo *m_topup_info){
-	int ret = 0;
+	int ret = 1;
+	int index = 0;
 	//foreach the channels
 	vector<ChannelInfo>::iterator channels = m_topup_info->channels.begin();
 	seLogEx(g_logHandle, "[ChannelImpl::ChargeRequest#%lu] channl num:%d",pthread_self(), m_topup_info->channels.size());
 	int charge_times = 0;
 	for(; channels != m_topup_info->channels.end(); ++channels){
-		//手拉手订单处理
-		charge_times++;
-		seLogEx(g_logHandle, "[ChargeRequest#%lu] NO.%d charge channel:%s"
-				,pthread_self(), charge_times, channels->interfaceName.c_str());
+		m_topup_info->channelId = channels->channelId;
+		m_topup_info->channel_discount = channels->discount;
+		//重试机制
+		while(charge_times < 5 && ret != 0){
+			charge_times++;
+			seLogEx(g_logHandle, "[ChargeRequest#%lu] NO.%d\ttry_times:%d\tcharge channel:%s"
+					,pthread_self(),index, charge_times, channels->interfaceName.c_str());
 
-		if(strcmp(channels->interfaceName.c_str(), GlobalConfig::Instance()->p_sls_interface) == 0){
-			//手拉手订单处理
-			shared_ptr<ChannelSLS> channel_sls(new ChannelSLS);
-			string result;
-			ret = channel_sls->Charge(m_topup_info, result);
-		}else if(strcmp(m_topup_info->interfaceName.c_str(), GlobalConfig::Instance()->p_llww_interface) == 0){
-			//来来往往订单处理
-			shared_ptr<ChannelLLWW> channel_llww(new ChannelLLWW);
-			string result;
-			ret = channel_llww->Charge(m_topup_info, result);
-		}else{
+			if(strcmp(channels->interfaceName.c_str(), GlobalConfig::Instance()->p_sls_interface) == 0){
+				//手拉手订单处理
+				shared_ptr<ChannelSLS> channel_sls(new ChannelSLS);
+				string result;
+				ret = channel_sls->Charge(m_topup_info, result);
+			}else if(strcmp(m_topup_info->interfaceName.c_str(), GlobalConfig::Instance()->p_llww_interface) == 0){
+				//来来往往订单处理
+				shared_ptr<ChannelLLWW> channel_llww(new ChannelLLWW);
+				string result;
+				ret = channel_llww->Charge(m_topup_info, result);
+			}else{
 		
+			}
 		}
+		index++;
 	}
 	//for test
 	

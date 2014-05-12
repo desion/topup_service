@@ -123,7 +123,6 @@ int get_time_now(const char* format, string &time_str){
 	time_t t = time(NULL);
 	char buf[30];
 	int ret = strftime(buf, 30, format, localtime(&t));
-	printf("time:%s\n", buf);
 	time_str = buf;
 	return ret;
 }
@@ -166,7 +165,6 @@ void write_err_msg(TopupInfo *topupInfo, vector<string>& errors){
     vector<string>::iterator it = errors.begin();
 	for(;it != errors.end();++it){	
 		TP_WRITE_ERR(topupInfo, "seqid:%d\t(SelectBestChannel)\t%s", topupInfo->seqid, it->c_str());
-		fprintf(stderr, "seqid:%d\t(SelectBestChannel)\t%s", topupInfo->seqid, it->c_str());
 	}
 }
 
@@ -195,6 +193,8 @@ int str2md5(const char* src, int len,char *md5str){
 	return 0;
 }*/
 void serialize_topupinfo(TopupInfo* topup_info, string &strout){
+	if(topup_info == NULL)
+		return;
 	Json::Value root;
 	Json::Value channel_array;
 	root["coopId"] = topup_info->qs_info.coopId;						//商家编号
@@ -212,8 +212,12 @@ void serialize_topupinfo(TopupInfo* topup_info, string &strout){
 	root["province"] = topup_info->qs_info.province;
 	root["status"] = topup_info->status;
 	root["interfaceName"] = topup_info->interfaceName;
+	root["channelId"] = topup_info->channelId;
+	root["channel_discount"] = topup_info->channel_discount;
 	root["creteTime"] = (uint32_t)time(NULL);
 	root["updateTime"] = (uint32_t)time(NULL);
+	root["last_op_time"] = topup_info->last_op_time;
+	root["userid"] = topup_info->userid;
 	//strout = root.toStyledString();
 	vector<ChannelInfo>::iterator iter = topup_info->channels.begin();
 	for(; iter != topup_info->channels.end(); ++iter){
@@ -241,6 +245,8 @@ void serialize_topupinfo(TopupInfo* topup_info, string &strout){
 }
 
 void deserialize_topupinfo(const string& json, TopupInfo* topup_info){
+	if(topup_info == NULL)
+		return;
 	Json::Value root;
 	Json::Reader reader;
 	if(reader.parse(json, root)){
@@ -276,6 +282,14 @@ void deserialize_topupinfo(const string& json, TopupInfo* topup_info){
             topup_info->create_time = root["creteTime"].asInt(); 
         if(!root["interfaceName"].isNull())
             topup_info->interfaceName = root["interfaceName"].asString(); 
+        if(!root["channelId"].isNull())
+            topup_info->channelId = root["channelId"].asInt(); 
+        if(!root["channel_discount"].isNull())
+            topup_info->channel_discount = root["channel_discount"].asDouble(); 
+        if(!root["last_op_time"].isNull())
+            topup_info->last_op_time = root["last_op_time"].asInt(); 
+        if(!root["userid"].isNull())
+            topup_info->userid = root["userid"].asString(); 
 		if(!root["channels"].isNull()){
 			Json::Value channelArray = root["channels"];
 			for(int i = 0; i < channelArray.size(); i++){

@@ -146,7 +146,6 @@ void TopupHandleMain::GlobalInit()
 		fprintf(stderr, "Init database connection pool failed");
 		exit(EXIT_FAILURE);
 	}
-	printf("connManager user:%s\tconnManager passwd:%s\n", conn_manager->m_userName.c_str(), conn_manager->m_passWord.c_str());
 
 }
 
@@ -193,8 +192,8 @@ int Run(){
 		pthread_join(notify_threads[i], NULL);
 	}
 	delete charge_threads;
-//	delete query_threads;
-//	delete notify_threads;
+	delete query_threads;
+	delete notify_threads;
 	return 0;
 } 
 

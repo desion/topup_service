@@ -47,12 +47,16 @@ bool TEST_SIGN()
 	return true;
 }
 
-bool TEST_NORMAL_CHARGE()
+bool TEST_NORMAL_CHARGE(int num)
 {
 	printf("--------------------正常测试------------------\n");
 	map<string, string, cmpKeyAscii> entitys;
 	char query[2048] = {0};
-	sprintf(query, "coopId=928707139&tbOrderNo=%d&cardId=10001&cardNum=1&customer=13693555577&sum=99.02&notifyUrl=http://123.126.54.32/notify.do&tbOrderSnap=99.02|101|测试样例|测试加密", (int)time(NULL));
+	uint64_t orderNO = num;
+	orderNO = (orderNO << 32);
+	orderNO = orderNO + (int)time(NULL);
+	uint64_t phone_no = 13693111111 + num;
+	sprintf(query, "coopId=928707139&tbOrderNo=%lu&cardId=10001&cardNum=1&customer=%lu&sum=99.02&notifyUrl=http://123.126.54.32/notify.do&tbOrderSnap=99.02|101|测试样例|测试加密",orderNO, phone_no);
 	//const char * query = "coopId=928707139&tbOrderNo=20140303231300&cardId=10001&cardNum=1&customer=13693555577&sum=99.02&notifyUrl=http://123.126.54.32/notify.do&tbOrderSnap=99.02|101|测试样例|测试加密";
 	char buf[2048];
 	char inbuf[2048] = {0};
@@ -103,7 +107,70 @@ bool TEST_NORMAL_CHARGE()
 	len += sprintf(encode_query + len,"&sign=%s", md5);
 	encode_query[len] = '\0';
 	printf("正确url:%s\n", encode_query);
-	httpclent_perform("http://127.0.0.1/tmall/topup.fcg", encode_query, &debug, NULL);
+	httpclent_perform("http://127.0.0.1/tmall/pay", encode_query, &debug, NULL);
+	
+	return true;
+}
+bool TEST_NORMAL_CUSTOMER(int num)
+{
+	printf("--------------------正常测试------------------\n");
+	map<string, string, cmpKeyAscii> entitys;
+	char query[2048] = {0};
+	uint64_t orderNO = num;
+	orderNO = (orderNO << 32);
+	orderNO = orderNO + (int)time(NULL);
+	uint64_t phone_no = 13693111111 + num;
+	sprintf(query, "coopId=llww123&tbOrderNo=%lu&cardId=10001&cardNum=1&customer=%lu&sum=99.02&notifyUrl=http://123.126.54.32/notify.do&tbOrderSnap=99.02|101|测试样例|测试加密",orderNO, phone_no);
+	char buf[2048];
+	char inbuf[2048] = {0};
+	char param[256] = {0};
+	strcpy(inbuf, query);
+	size_t insize = strlen(inbuf);
+	size_t outsize = 2048;
+	change_code("UTF-8", "GBK", inbuf, &insize, buf, &outsize);
+	printf("转gbk:%s\n", buf);
+	bool parse_ret = parse_params(buf, &entitys);
+	assert(parse_ret == true);
+
+	char encode_query[2048] = {0};
+	int len = 0;
+	
+	
+	map<string, string>::iterator it = entitys.begin();
+	for(;it != entitys.end(); ++it){
+		url_encode(it->second.c_str(), strlen(it->second.c_str()), param, 256);
+		printf("%s:%s:%s\n", it->first.c_str(),it->second.c_str(), param);
+		it->second = string(param);
+		len += sprintf(encode_query+len, "%s=%s&", it->first.c_str(), param);
+	}
+	encode_query[len -1] = '\0';
+	printf("encode_query:%s\n", encode_query);
+
+	
+	char md5[33] = {0};
+	char signStr[2048] = {0};
+	len = 0;
+	map<string, string, cmpKeyAscii> decode_entitys;
+	parse_ret = parse_params(encode_query, &decode_entitys);
+	it = decode_entitys.begin();
+	for(;it != decode_entitys.end(); ++it){
+		if(strcmp("sign", it->first.c_str()) == 0){
+			continue;
+		}
+		printf("PARAM:%s:%s\n", it->first.c_str(), it->second.c_str());
+		len += sprintf(signStr + len, "%s%s", it->first.c_str(), it->second.c_str());
+    }
+    len += sprintf(signStr + len, "529d9ce791e47401de40233e26d954c6");
+    printf("Sign String:%s\n", signStr);
+	str2md5(signStr,len, md5);
+    assert(strlen(md5) == 32);
+    printf("MD5:%s\n", md5);
+
+	len = strlen(encode_query);
+	len += sprintf(encode_query + len,"&sign=%s", md5);
+	encode_query[len] = '\0';
+	printf("正确url:%s\n", encode_query);
+	httpclent_perform("http://127.0.0.1/customer/pay", encode_query, &debug, NULL);
 	
 	return true;
 }
@@ -112,7 +179,7 @@ bool TEST_LAKEPARAM_CHARGE()
 {
 	printf("--------------------缺少参数测试------------------\n");
 	string query = "coopId=928707139&tbOrderNo=20140303231300&cardId=101&cardNum=0&customer=13693555577&sum=99.02&notifyUrl=http://123.126.54.32/notify.do&sign=123456789&tbOrderSnap=99.02|101|测试样例|测试加密";
-	const char* url = "http://127.0.0.1/tmall/topup.fcg";
+	const char* url = "http://127.0.0.1/tmall/pay";
 	httpclent_perform(url, query.c_str(), &debug, NULL);
 	query = "tbOrderNo=20140303231300&cardId=101&cardNum=1&customer=13693555577&sum=99.02&notifyUrl=http://123.126.54.32/notify.do&sign=123456789&tbOrderSnap=99.02|101|测试样例|测试加密";
 	httpclent_perform(url, query.c_str(), &debug, NULL);
@@ -168,7 +235,7 @@ bool TEST_QUERY_ORDER(){
 	len = 0;
 	len += sprintf(signStr + len,"%s", query_ori);
 	len += sprintf(signStr + len,"&sign=%s", md5);
-	httpclent_perform("http://127.0.0.1/tmall/query.fcg", signStr, &debug, NULL);
+	httpclent_perform("http://127.0.0.1/tmall/query", signStr, &debug, NULL);
 	return true;
 }
 
@@ -217,30 +284,22 @@ int main(int argc, char *argv[]){
 		printf("key:%s\tvalue:%s\n", it->first.c_str(), it->second.c_str());
 	}
 	*/
-	TEST_CONNECTION();
-	TEST_SIGN();
-	int i = 10;
+	//TEST_CONNECTION();
+	//TEST_SIGN();
+	int i = 100;
 	while(i > 0){
 		i--;
-		sleep(1);
-		TEST_NORMAL_CHARGE();
+		usleep(300);
+		TEST_NORMAL_CHARGE(i);
+		TEST_NORMAL_CUSTOMER(i);
 	}
 	TEST_QUERY_ORDER();
-	redisContext *redis;
-	redisReply *reply;
-	redis = redisConnect((char*)"127.0.0.1", 6379);
-	reply = (redisReply*)redisCommand(redis,"PING");
-    printf("PONG: %s\n", reply->str);
-    freeReplyObject(reply);
 
-	RedisClient *redisclient = new RedisClient;
-	redisclient->connect("127.0.0.1", 6379);
-	bool ret = redisclient->ping();
-	assert(ret == true);
 	void *handle = dlopen("./libcustomer.so", RTLD_LAZY);
 	fprintf (stderr, "%s\n", dlerror()); 
 	assert(handle != NULL);
 
+	httpclent_perform("http://127.0.0.1/tmall/pay", "", &debug, NULL);
 	//TEST_LAKEPARAM_CHARGE();
 	return 0;
 }

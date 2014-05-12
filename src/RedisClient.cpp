@@ -145,7 +145,7 @@ bool RedisClient::dequeue(const char* queue, string &value){
     }
     if( !(reply->type == REDIS_REPLY_STRING))  
     {  
-        fprintf(stderr, "Failed to execute command[%s]\n",cmd);  
+        //fprintf(stderr, "Failed to execute command[%s]\n",cmd);  
         freeReplyObject(reply);
         return false;
     }

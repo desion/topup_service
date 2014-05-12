@@ -9,7 +9,6 @@
 
 #include <iostream>
 #include "TopupInterface_types.h"
-#include "TopupServer.h"
 #include "TopupBase.h"
 #include "ChargeBusiness.h"
 #include "TopupUtils.h"
@@ -29,6 +28,8 @@ class TopupCustomer: public TopupBase{
 		int Init(TopupInfo* m_topup_info);
 
 		int Notify();
+
+		void Log();
 	
 	//上行接口
 	protected:
@@ -47,6 +48,8 @@ class TopupCustomer: public TopupBase{
 		int MakeErrReplay(const char* errCode,const char* status, string &result);
 		//返回成功信息
 		int MakeSuccessReplay(const char* status, string &result);
+
+		int MakeBalanceReplay(const char* errCode, double balance, string &result);
 		//验证商品信息的正确性
 		//包括产品id是否存在，是否有库存，是否下架
 		//验证价格是否正确，是否是手机对应省市产品等
@@ -57,6 +60,8 @@ class TopupCustomer: public TopupBase{
 		//返回对应的渠道信息
 		int SelectBestChannel();
 
+		int CheckBalance();
+
 		int CreateTmallOrder();
 		//向上游代理商发送充值请求，并取得返回的xml信息
 		int SendRequest(string &reponse);
@@ -65,6 +70,7 @@ class TopupCustomer: public TopupBase{
 
 		bool CheckSign();
 
+		int UpdateStatus();
 
 	private:
 		TopupInfo *m_topup_info;		//充值使用的信息

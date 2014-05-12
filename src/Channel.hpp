@@ -26,6 +26,12 @@ class Channel{
 
 };
 
+typedef struct req_result{
+	int status;
+    char msg[256];
+    char order_no[128];
+}req_result;
+
 ///手拉手充值渠道处理类
 class ChannelSLS : public Channel{
 	public:

@@ -38,11 +38,21 @@ bool ConnectionManager::Init(string userName, string passWord,
     return true;
 	
 }
-
+//创建连接
 Connection * ConnectionManager::CreateConnection(){
-	cout << "CreateConnection:" << m_userName << "\t" << m_passWord << endl;
-
-    return m_connection_pool->createConnection(m_userName,m_passWord);
+	//cout << "CreateConnection:" << m_userName << "\t" << m_passWord << endl;
+	Connection* conn = NULL;
+    try
+    {
+		conn =  m_connection_pool->createConnection(m_userName,m_passWord);
+	}
+	catch (SQLException &sqlExcp)
+    {
+        int i = sqlExcp.getErrorCode();
+        string strinfo=sqlExcp.getMessage();
+        LOG(ERROR) << strinfo;
+    }
+	return conn;
 }
 
 void ConnectionManager::Recover(Connection *conn){

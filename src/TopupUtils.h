@@ -20,6 +20,9 @@
 #include <openssl/md5.h>
 #include "jsoncpp/json.h"
 
+using namespace oracle::occi;
+using namespace std;
+
 #define MAX_LOG_LEN  1024
 
 //将日志写入缓冲区
@@ -59,6 +62,12 @@
 #define QUERYQUEUE "query"
 #define NOTIFYQUEUE "notify"
 
+
+//通知状态定义
+#define NOTIFY_UNDONE 0			//未通知
+#define NOTIFY_SUCCESS 1		//已经成功通知
+#define NOTIFY_FAIL 2			//通知失败
+
 enum RequestType{
     CHARGE = 0,
     QUERY,
@@ -70,54 +79,57 @@ enum RequestType{
 enum OrderStatus{CREATE = 0, UNDERWAY, SUCCESS, FAILED, CANCELED};
 
 typedef struct ChannelInfo{
-	int channelId;			//渠道ID
-	string channelName;		//渠道名称
-	string sname;			//渠道简称
-	float discount;			//折扣
-	string interfaceName;	//接口标识
-	int priority;			//优先级
-	int repeat;				//重试次数
-	string pid;				//代理商用产品id
+	int channelId;					//渠道ID
+	std::string channelName;		//渠道名称
+	std::string sname;				//渠道简称
+	float discount;					//折扣
+	std::string interfaceName;		//接口标识
+	int priority;					//优先级
+	int repeat;						//重试次数
+	std::string pid;				//代理商用产品id
 } ChannelInfo;
 
 typedef struct QsInfo{
-	string coopId;          //商家编号
-    string tbOrderNo;       //淘宝的订单号
-	string coopOrderNo;		//系统生成订单号
-    string cardId;          //充值卡商品编号
-    int cardNum;            //充值卡数量
-    string customer;        //手机号码
-    double sum;             //本次充值总金额
-    string tbOrderSnap;     //商品信息快照
-    string notifyUrl;       //异同通知地址
-    string sign;            //签名字符串
-    string version;         //版本
-	string coopOrderStatus;	//notify状态
-	double price;			//单价
-	int value;				//面值
-	int op;					//运营商
-	int province;			//省份
+	std::string coopId;				//商家编号
+    std::string tbOrderNo;			//淘宝的订单号
+	std::string coopOrderNo;		//系统生成订单号
+    std::string cardId;				//充值卡商品编号
+    int cardNum;					//充值卡数量
+    std::string customer;			//手机号码
+    double sum;						//本次充值总金额
+    std::string tbOrderSnap;		//商品信息快照
+    std::string notifyUrl;			//异同通知地址
+    std::string sign;				//签名字符串
+    std::string version;			//版本
+	std::string coopOrderStatus;	//notify状态
+	double price;					//总价，不含打折信息
+	int value;						//面值
+	int op;							//运营商
+	int province;					//省份
 }QsInfo;
 
 typedef struct TopupInfo{
-	QsInfo qs_info;						//请求参数相关
-	vector<ChannelInfo> channels;		//最优渠道
-	Connection *conn;					//数据库连接
-	char log[MAX_LOG_LEN];				//业务日志缓冲区
-	char err_log[MAX_LOG_LEN];			//错误日志缓冲区
-	int log_len;						//缓冲区位置标记
-	int err_log_len;					//缓冲区位置标记
-	uint32_t seqid;						//请求序列标记
-	struct timeval start_time;			//开始处理时间
+	QsInfo qs_info;							//请求参数相关
+	std::vector<ChannelInfo> channels;		//最优渠道
+	Connection *conn;						//数据库连接
+	char log[MAX_LOG_LEN];					//业务日志缓冲区
+	char err_log[MAX_LOG_LEN];				//错误日志缓冲区
+	int log_len;							//缓冲区位置标记
+	int err_log_len;						//缓冲区位置标记
+	uint32_t seqid;							//请求序列标记
+	struct timeval start_time;				//开始处理时间
 	OrderStatus status;
-	string update_time;
-	int notify;							//是否通知
-	int channelId;
-	string interfaceName;				//当前使用接口标识
+	std::string update_time;
+	int notify;								//是否通知
+	int channelId;							//使用的渠道id
+	double channel_discount;				//使用渠道折扣
+	std::string interfaceName;				//当前使用接口标识
 	int repeat;
-	string channelSname;				//当前使用代理商简称
-	uint32_t create_time;				//订单创建时间
-	string pid;							//当前使用代理商产品id
+	std::string channelSname;				//当前使用代理商简称
+	uint32_t create_time;					//订单创建时间
+	std::string pid;						//当前使用代理商产品id
+	uint32_t last_op_time;					//记录最后一次操作改记录时间
+	std::string userid;						//标记请求用户的身份信息，天猫用tmall
 }TopupInfo;
 
 
@@ -195,23 +207,23 @@ inline bool ChannelRank(ChannelInfo channelA, ChannelInfo channelB){
 
 
 //根据手机号码和时间生成order no
-extern uint64_t encode_orderno(string phoneNo);
+extern uint64_t encode_orderno(std::string phoneNo);
 
 //解析order no从中得到手机号和时间戳
 extern void decode_orderno(const uint64_t orderno, uint64_t *phoneno, uint32_t *ttime);
 
-extern int get_time_now(const char* format, string &time_str);
+extern int get_time_now(const char* format, std::string &time_str);
 
 extern int calc_time_span(struct timeval *start_time);
 
-extern void write_err_msg(TopupInfo *topupInfo, vector<string>& errors);
+extern void write_err_msg(TopupInfo *topupInfo, std::vector<std::string>& errors);
 
-extern int get_strtime(const uint32_t ts, const char* format, string &time_str);
+extern int get_strtime(const uint32_t ts, const char* format, std::string &time_str);
 
-extern void trans_time(string &from, string &to);
+extern void trans_time(std::string &from, std::string &to);
 
-extern void serialize_topupinfo(TopupInfo* topup_info, string &strout);
+extern void serialize_topupinfo(TopupInfo* topup_info, std::string &strout);
 
-extern void deserialize_topupinfo(const string& json, TopupInfo* topup_info);
+extern void deserialize_topupinfo(const std::string& json, TopupInfo* topup_info);
 
 #endif  //__TOPUP_UTILS_H

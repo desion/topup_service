@@ -1,11 +1,11 @@
 /*************************************************************************
-	> File Name: TopupImpl.h
+	> File Name: TopupZkcl.h
 	> Author: desionwang
 	> Mail: wdxin1322@qq.com 
 	> Created Time: Sat 08 Feb 2014 04:10:52 PM CST
  ************************************************************************/
-#ifndef __TOPUP_IMPL_H
-#define __TOPUP_IMPL_H
+#ifndef __TOPUP_ZKCL_H
+#define __TOPUP_ZKCL_H
 
 #include <iostream>
 #include "TopupInterface_types.h"
@@ -18,10 +18,10 @@ using namespace std;
 using namespace  ::topupinterface;
 
 
-class TopupImpl: public TopupBase{
+class TopupZkcl: public TopupBase{
 	public:
-		TopupImpl();
-		~TopupImpl();
+		TopupZkcl();
+		~TopupZkcl();
 		//对外接口，统一处理FCGI请求
 		int HandleRequest(const TopupRequest& request, string& result);
 
@@ -35,16 +35,8 @@ class TopupImpl: public TopupBase{
 	//上行接口
 	protected:
 		//针对各个接口的处理函数
-		//天猫充值接口
-		int TmallCharge(string &response); 
-		//天猫查询接口
-		int TmallQuery(string &response);
-		//天猫回调接口，向TMALL发送回调请求
-		int TmallNotify();
-		//天猫取消接口
-		int TmallCancel(string &response);
-		//查询余额接口，第三方订购商使用
-		int GetBalance(string &response);
+		//充值接口
+		int ZkclCharge(string &response); 
 	
 	protected:
 		//返回错误信息
@@ -67,23 +59,14 @@ class TopupImpl: public TopupBase{
 		
 		int UpdateStatus();
 
-		int QueryOrder();
-
 		bool CheckSign();
 
 
 	private:
 		TopupInfo *m_topup_info;		//充值使用的信息
 		vector<ChannelInfo> m_channels;
-		int m_channel_index;
 		map<string, string, cmpKeyAscii> map_entitys;
 		Connection *m_conn;
 };
 
-//动态链接库调用接口，用于创建相应实例
-extern "C" TopupBase* m_create();
-
-//动态链接库调用接口，用于销毁相应的实例,可不可以通过得到的指针直接销毁
-extern "C" void m_destroy(TopupBase* p);
-
-#endif //__TOPUP_IMPL_H
+#endif //__TOPUP_ZKCL_H

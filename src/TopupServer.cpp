@@ -23,7 +23,6 @@
 #include "TopupService.h"
 #include "GlobalConfig.h"
 #include "BaseBusiness.h"
-#include "glog/logging.h"
 #include "TopupServer.h"
 #include "TopupUtils.h"
 #include "RedisClient.h"
@@ -47,27 +46,13 @@ enum ESysStatus{
 	Resume				//恢复，由暂停到正常的中间状态
 };
 
+
 GlobalConfig* gconf = NULL;			//全局配置
-TopupServer *P_TPServer = NULL;		//充值服务实例
-//LOG_HANDLE	service_log;			//日志文件句柄
-int isDaemon = 0;
-volatile int status = Normal;
-pthread_t *charge_threads;
-pthread_t *query_threads;
-pthread_t *notify_threads;
+TopupServer *P_TPServer = NULL;
 
-int charge_count = 0;
-int query_count = 0;
-int notify_count = 0;
-
-pthread_mutex_t charge_lock = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t  charge_cond = PTHREAD_COND_INITIALIZER;
-
-pthread_mutex_t query_lock = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t  query_cond = PTHREAD_COND_INITIALIZER;
-
-pthread_mutex_t notify_lock = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t  notify_cond = PTHREAD_COND_INITIALIZER;
+extern LOG_HANDLE g_logHandle;      //日志句柄 define in utils.h
+volatile int isDaemon = 0;			//是否采用后台进程
+volatile int status = Normal;		//当然服务状态
 
 //读取启动参数
 int TopupServer::ParseParam(int argc, char ** argv){
@@ -158,9 +143,12 @@ int TopupServer::InitLog()
 	   }
     }
 	//业务日志初始化
-	if(seLogInit(&service_log, logPath, logName, SLO_SWITCH_BY_DAY | SLO_SWITCH_BY_SIZE, NULL, 1024, 0)){       
-		return 1;
-	}
+	//if(seLogInit(&service_log, logPath, logName, SLO_SWITCH_BY_DAY | SLO_SWITCH_BY_SIZE, NULL, 1024, 0)){       
+	//	return 1;
+	//}
+	if(seLogInit(&g_logHandle, logPath, logName, SLO_SWITCH_BY_DAY | SLO_SWITCH_BY_SIZE, NULL, 1024, 0)){       
+        return 1;
+    }
 	return 0;
 }
 
@@ -192,7 +180,7 @@ void TopupServer::GlobalInit()
 		slog_write(LL_FATAL, "Init database connection pool failed");
 		exit(EXIT_FAILURE);
 	}
-	printf("connManager user:%s\tconnManager passwd:%s\n", conn_manager->m_userName.c_str(), conn_manager->m_passWord.c_str());
+	slog_write(LL_NOTICE, "connManager user:%s\tconnManager passwd:%s\n", conn_manager->m_userName.c_str(), conn_manager->m_passWord.c_str());
 
 	//TMall加载充值服务动态链接库
 	if(so_init(&topup_so, gconf->p_tmall_path, so_topup_reload)){
@@ -244,142 +232,29 @@ int TopupServer::TPServe(){
     return 0;
 }
 
-void *charge(void *arg){
-	while(1){
-		pthread_mutex_lock(&charge_lock);
-		while(charge_count == 0)
-			pthread_cond_wait(&charge_cond, &charge_lock);
-		RedisClient *redis = new RedisClient();                                                                                                                                                             
-		string value;
-		if(redis->connect(GlobalConfig::Instance()->s_redis_ip, GlobalConfig::Instance()->n_redis_port)){
-			redis->select(1);
-			if(!redis->dequeue("underway", value)){
-				
-			}
-			slog_write(LL_FATAL, "CHARGE: %s", value.c_str());
-			charge_count--;
-			fprintf(stderr, "KKKK:%s\n", value.c_str());
-			pthread_mutex_lock(&query_lock);
-			if(query_count == 0)
-					pthread_cond_signal(&query_cond);
-			query_count = query_count + 1;
-			pthread_mutex_unlock(&query_lock);
-		}
-		delete redis;
-		pthread_mutex_unlock(&charge_lock);	
-		sleep(10);
-	}
-	return NULL;
-}
-
-void *query(void *arg){
-	while(1){
-		pthread_mutex_lock(&query_lock);
-		while(query_count == 0)
-			pthread_cond_wait(&query_cond, &query_lock);
-		RedisClient *redis = new RedisClient();                                                                                                                                                             
-		string value;
-		if(redis->connect(GlobalConfig::Instance()->s_redis_ip, GlobalConfig::Instance()->n_redis_port)){
-			redis->select(1);
-			if(!redis->dequeue("query", value)){
-			
-			}
-			slog_write(LL_FATAL, "QUERY: %s", value.c_str());
-			fprintf(stderr, "KKKK:%s\n", value.c_str());
-			pthread_cond_signal(&notify_cond);
-		}
-		delete redis;
-		pthread_mutex_unlock(&query_lock);
-		sleep(10);
-	}
-	return NULL;
-}
-
-void *notify(void *arg){
-	while(1){
-		pthread_mutex_lock(&notify_lock);
-		while(notify_count == 0)
-			pthread_cond_wait(&notify_cond, &notify_lock);
-		RedisClient *redis = new RedisClient();                                                                                                                                                             
-		string value;
-		if(redis->connect(GlobalConfig::Instance()->s_redis_ip, GlobalConfig::Instance()->n_redis_port)){
-			redis->select(1);
-			if(!redis->dequeue("notify", value)){
-				
-			}
-			slog_write(LL_FATAL, "NOTIFY: %s", value.c_str());
-			fprintf(stderr, "KKKK:%s\n", value.c_str());
-		}
-		delete redis;
-		pthread_mutex_unlock(&notify_lock);	
-	}
-	return NULL;
-}
-
-/**启动工作流线程**/
-int startThread(){
-	charge_count = 0;
-	query_count = 0;
-	notify_count = 0;
-	//pthread_mutex_init(&charge_lock, NULL);  
-	//pthread_cond_init(&charge_cond, NULL); 
-	int num = GlobalConfig::Instance()->n_charge_thread;
-	assert(num > 0);
-	charge_threads = (pthread_t *)malloc(num * sizeof(pthread_t));
-	assert(charge_threads != NULL);
-	for(int i = 0; i < num; i++){
-		pthread_create(&charge_threads[i], NULL, charge, NULL);
-	}
-
-	num = GlobalConfig::Instance()->n_query_thread;
-	assert(num > 0);
-	//pthread_mutex_init(&query_lock, NULL);  
-	//pthread_cond_init(&query_cond, NULL); 
-	query_threads = (pthread_t *)malloc(num * sizeof(pthread_t));
-	assert(query_threads != NULL);
-	for(int i = 0; i < num; i++){
-		pthread_create(&query_threads[i], NULL, query, NULL);
-	}
-
-	num = GlobalConfig::Instance()->n_notify_thread;
-	assert(num > 0);
-	//pthread_mutex_init(&notify_lock, NULL);  
-	//pthread_cond_init(&notify_cond, NULL); 
-	notify_threads = (pthread_t *)malloc(num * sizeof(pthread_t));
-	assert(notify_threads != NULL);
-	for(int i = 0; i < num; i++){
-		pthread_create(&notify_threads[i], NULL, notify, NULL);
-	}
-	return 0;
-} 
 
 int TopupServer::Serve(int argc, char ** argv){
-	if(ParseParam(argc, argv) != 0){
-		return -1;
-	}
 	//初始化系统日志
 	InitLog();
 	//初始化全局配置
 	GlobalInit();
-	//启动处理线程	
-	//startThread();
 	//启动thrift服务
 	TPServe();
 	return 0;
 }
-
+/*
 int TopupServer::CallLog(TopupInfo* topupInfo){
 	if(topupInfo->log_len > 0 && topupInfo->log_len < MAX_LOG_LEN){
 		topupInfo->log[topupInfo->log_len] = '\0';
-		seLogEx(service_log, "%s", topupInfo->log);
+		seLogEx(g_logHandle, "%s", topupInfo->log);
 	}
 	if(topupInfo->err_log_len > 0 && topupInfo->err_log_len < MAX_LOG_LEN){
 		topupInfo->err_log[topupInfo->err_log_len] = '\0';
-		seErrLogEx(service_log, "%s", topupInfo->err_log);
+		seErrLogEx(g_logHandle, "%s", topupInfo->err_log);
 	}
 	return 0;
 }
-
+*/
 void daemon(void){
 	//int fd;
 	if(fork() != 0) exit(0);	//parent exit
@@ -415,9 +290,12 @@ void setupSignalHandlers(void) {
 }
 
 int main(int argc, char *argv[]){
-	//if(isDaemon == 1)
-		daemon();
 	setupSignalHandlers();
 	P_TPServer = new TopupServer();
+	if(P_TPServer->ParseParam(argc, argv) != 0){
+		return -1;
+	}
+	if(isDaemon == 1)
+		daemon();
 	return P_TPServer->Serve(argc, argv);
 }

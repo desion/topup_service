@@ -10,7 +10,6 @@
 #include <iostream>
 #include "TopupInterface_types.h"
 #include "occi.h"
-#include "TopupUtils.h"
 
 using namespace std;
 using namespace  ::topupinterface;  
@@ -25,6 +24,7 @@ class TopupBase{
 		virtual int HandleRequest(const TopupRequest& request, string& result) = 0;
 		virtual int Notify() = 0;
 		virtual int Init(TopupInfo* m_topup_info) = 0;
+		virtual void Log() = 0;
 };
 
 typedef TopupBase* (*create_t)();

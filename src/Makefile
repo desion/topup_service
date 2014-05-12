@@ -11,6 +11,7 @@ SOURCES = BaseBusiness.cpp \
 		  TopupService.cpp \
 		  HttpClient.cpp \
 		  TopupUtils.cpp \
+		  TopupZkcl.cpp \
 		  ChargeBusiness.cpp \
 		  RedisClient.cpp 
 
@@ -75,7 +76,7 @@ LIBS = -L../lib \
 
 TEST = test_httpclient
 
-all: oracle_client topup_server topup.fcg $(TEST) $(TOPUP_SO) $(CUSTOMER_SO) $(CHANNEL_SO) $(HANDLE_EXE)
+all: oracle_client topup_server topup.fcg $(TEST) $(TOPUP_SO) $(CUSTOMER_SO) $(CHANNEL_SO) $(HANDLE_EXE) thrift_test
 
 
 .cpp.o:
@@ -115,7 +116,11 @@ test_httpclient: HttpClient.o Test_HttpClient.o
 	$(CXX) $(CPPFLAG) $(INCS) $(LIBS)  Test_HttpClient.o HttpClient.o ConnectionManager.o GlobalConfig.o RedisClient.o -Wl,--rpath -Wl,/data/occi/lib \
 	   	-lcurl -liconv -liniparser -lcommon -lglog -locci -lclntsh -lnnz11 -ltinyxml -ljson_linux-gcc-4.1.2_libmt -lhiredis -o $@
 
+thrift_test: HttpClient.o Test_Thrift.o
+	$(CXX) $(CPPFLAG) $(INCS) $(LIBS)  HttpClient.o Test_Thrift.o $(THRIFT_OBJS) -Wl,--rpath -Wl,/data/occi/lib \
+		-lfcgi -Wl,--rpath -Wl,/data/occi/lib -lcurl -lthrift -lthriftnb -lpthread -levent -ltinyxml -ljson_linux-gcc-4.1.2_libmt -o $@
+
 clean:
 	rm *.o -f
 	rm *.so
-	rm oracle_client topup_server topup.fcg $(TEST) $(TOPUP_SO) $(CUSTOMER_SO)
+	rm oracle_client topup_server topup.fcg $(HANDLE_EXE) $(TEST)

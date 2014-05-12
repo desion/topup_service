@@ -18,14 +18,13 @@
 using namespace boost;
 
 extern LOG_HANDLE g_logHandle; 
-#define INITIAL_SLEEP_TIME 10000
+#define INITIAL_SLEEP_TIME 100
 #define MAX_SLEEP_TIME 200000
 #define TIMEOUT_TIME 1800
 
 void *charge(void *arg){
 	int sleep_time = INITIAL_SLEEP_TIME;//ms	
 	int fail_time = 0;
-	int retry_time = 5;
 	int charge_status = 1;
 	shared_ptr<RedisClient> redis(new RedisClient());
 	//连接redis
@@ -62,12 +61,11 @@ void *charge(void *arg){
 				sleep_time -= 10;
 			TopupInfo *topup_info = new TopupInfo;
 			deserialize_topupinfo(value, topup_info);
+			//更新操作时间
+			topup_info->last_op_time = (uint32_t)time(NULL);
 			shared_ptr<ChannelImpl> channel_handler(new ChannelImpl);
 			//尝试5次到代理商建立订单，失败认为订单失败，并放入通知队列
-			while(retry_time >=0 && charge_status != 0){
-				charge_status = channel_handler->ChargeRequest(topup_info);
-				retry_time--;
-			}
+			charge_status = channel_handler->ChargeRequest(topup_info);
 			if(charge_status != 0){
 				//创建失败,不再返回队列，直接作为失败处理，放入通知队列
 				seErrLogEx(g_logHandle, "[charge#%lu] order:%s try 5 times and failed!",pthread_self(), value.c_str());
@@ -77,7 +75,9 @@ void *charge(void *arg){
 				Connection *conn = connManager->CreateConnection();
 				chargeBusiness->Init(conn);
 				topup_info->status = FAILED;
-				chargeBusiness->UpdateOrderStatus(topup_info);
+				topup_info->notify = 0;
+				if(chargeBusiness->UpdateOrderStatus(topup_info) != 0)
+					seErrLogEx(g_logHandle, "[charge#%lu] update status failed!",pthread_self(), value.c_str());
 				connManager->Recover(conn);
 				//通知失败
 				string fail_data;
@@ -85,18 +85,24 @@ void *charge(void *arg){
 				redis->enqueue(NOTIFYQUEUE, fail_data.c_str());		
 				seLogEx(g_logHandle, "[charge#%lu] create order failed push to notify:%s",pthread_self(), fail_data.c_str());
 			}else{
+				//更新渠道信息
+				shared_ptr<ChargeBusiness> chargeBusiness(new ChargeBusiness());
+			    ConnectionManager *connManager = ConnectionManager::Instance();
+			    Connection *conn = connManager->CreateConnection();
+			    chargeBusiness->Init(conn);
+                //if(chargeBusiness->UpdateChannel(topup_info) != 0)
+                //    seErrLogEx(g_logHandle, "[charge#%lu] update channel info failed!",pthread_self(), value.c_str());
+                connManager->Recover(conn);
 				//成功放入查询队列
 				string success_data;
 				serialize_topupinfo(topup_info, success_data);
 				redis->enqueue(QUERYQUEUE, success_data.c_str());		
-				printf("%s\n", success_data.c_str());
 				seLogEx(g_logHandle, "[charge#%lu] create order success push to query:%s",pthread_self(), success_data.c_str());
 			}
 			delete topup_info;
 		}
 		if(sleep_time > 0)
 			usleep(sleep_time);
-		sleep(1);
 	}
 }
 
@@ -133,6 +139,17 @@ void *query(void *arg){
 				sleep_time -= 10;
 			TopupInfo *topup_info = new TopupInfo;
 			deserialize_topupinfo(value, topup_info);
+			uint32_t time_now = (uint32_t)time(NULL);
+			//控制查询次数，限定最短查询时间为1秒
+			if(time_now - topup_info->last_op_time < 1){
+				string success_data;
+			    serialize_topupinfo(topup_info, success_data);
+			    redis->enqueue(QUERYQUEUE, success_data.c_str());
+			    seLogEx(g_logHandle, "[query#%lu] order create less than one minute:%s",pthread_self(), success_data.c_str());
+				continue;	
+			}
+			//更新记录的最后操作时间
+			topup_info->last_op_time = time_now;
 			shared_ptr<ChannelImpl> channel_handler(new ChannelImpl);
 			//查询的订单已经成功
 			if(0 == channel_handler->QueryRequest(topup_info)){
@@ -151,13 +168,17 @@ void *query(void *arg){
 				seLogEx(g_logHandle, "[query#%lu] order charge succes push to notify:%s",pthread_self(), success_data.c_str());
 			}else{   ///订单状态时失败的订单
 				//将要超时的直接更新为成功
-				time_t time_now = time(NULL);
+				//time_t time_now = time(NULL);
 				if(time_now - topup_info->create_time >= TIMEOUT_TIME){
 					topup_info->status = SUCCESS;
 					//更新订单状态为成功，并通知
 					shared_ptr<ChargeBusiness> chargeBusiness(new ChargeBusiness());
 					ConnectionManager *connManager = ConnectionManager::Instance();
 					Connection *conn = connManager->CreateConnection();
+					if(conn == NULL){
+						                slog_write(LL_FATAL, "create connection instance failed!");
+										                continue;
+														            }
 					chargeBusiness->Init(conn);
 					chargeBusiness->UpdateOrderStatus(topup_info);
 					connManager->Recover(conn);
@@ -178,14 +199,12 @@ void *query(void *arg){
 		}
 		if(sleep_time > 0)
 			usleep(sleep_time);
-		sleep(1);
 	}
 }
 
 void *notify(void *arg){
 	int sleep_time = INITIAL_SLEEP_TIME;//ms	
 	int fail_time = 0;
-	int retry_times = 5;
 	int notify_status = -1;
 	shared_ptr<RedisClient> redis(new RedisClient());
 	//连接redis
@@ -217,59 +236,45 @@ void *notify(void *arg){
 		}else{
 			if(sleep_time > 0)
 				sleep_time -= 10;
+			ConnectionManager *connManager = ConnectionManager::Instance();
+			Connection *conn = connManager->CreateConnection();
+			if(conn == NULL){
+				slog_write(LL_FATAL, "create connection instance failed!");
+				continue;
+			}
 			TopupInfo *topup_info = new TopupInfo;
+			assert(topup_info != NULL);
 			deserialize_topupinfo(value, topup_info);
 			shared_ptr<ChannelImpl> channel_handler(new ChannelImpl);
 			shared_ptr<ChargeBusiness> chargeBusiness(new ChargeBusiness());
-		    ConnectionManager *connManager = ConnectionManager::Instance();
-		    Connection *conn = connManager->CreateConnection();
-		    chargeBusiness->Init(conn);
-		    //topup_info->status = FAILED;
-			//检查是否已经通知，有可能重复通知
-		    int notify = chargeBusiness->GetNotifyStatus(topup_info->qs_info.coopOrderNo);
-		    connManager->Recover(conn);
 
-			//notify失败5次，直接丢弃
-			//判断订单的来源，调用相应的接口进行通知,分为天猫和订购用户
-			if(notify == 0){
-				if(topup_info->interfaceName == "tmall"){
-					TopupBase* topupBase = new TopupImpl();
-					ConnectionManager *connManager = ConnectionManager::Instance();
-					Connection *conn = connManager->CreateConnection();
-					if(conn == NULL){
-						slog_write(LL_FATAL, "create connection instance failed!");
-					}
-					topup_info->conn = conn;
-					topupBase->Init(topup_info);
-					while(notify == 0 && retry_times >= 0 && notify_status != 0){
-						notify_status = topupBase->Notify();
-					}
-					connManager->Recover(conn);
-					//销毁充值实例
-					delete topupBase;
-				}else{
-					TopupBase* topupBase = new TopupCustomer();
-					ConnectionManager *connManager = ConnectionManager::Instance();
-					Connection *conn = connManager->CreateConnection();
-					if(conn == NULL){
-						slog_write(LL_FATAL, "create connection instance failed!");
-					}
-					topup_info->conn = conn;
-					topupBase->Init(topup_info);
-					//重试
-					while(notify == 0 && retry_times >= 0 && notify_status != 0){
-						notify_status = topupBase->Notify();
-					}
-					connManager->Recover(conn);
-					//销毁充值实例
-					delete topupBase;
-				}
+			if(topup_info->userid == "tmall"){
+				//tmall 订单异步通知
+				TopupBase* topupBase = new TopupImpl();
+				assert(topupBase != NULL);
+				topup_info->conn = conn;
+				topupBase->Init(topup_info);
+				notify_status = topupBase->Notify();
+				seLogEx(g_logHandle, "[notify#%lu]\tuserid:%s\tstatus:%d",pthread_self(), topup_info->userid.c_str(), notify_status);
+				connManager->Recover(conn);
+				//销毁充值实例
+				delete topupBase;
+			}else{
+				//下游订货商异步通知
+				TopupBase* topupBase = new TopupCustomer();
+				assert(topupBase != NULL);
+				topup_info->conn = conn;
+				topupBase->Init(topup_info);
+				notify_status = topupBase->Notify();
+				seLogEx(g_logHandle, "[notify#%lu]\tuserid:%s\tstatus:%d",pthread_self(), topup_info->userid.c_str(), notify_status);
+				connManager->Recover(conn);
+				//销毁充值实例
+				delete topupBase;
 			}
 			delete topup_info;
 		}
 
 		if(sleep_time > 0)
 			usleep(sleep_time);
-		sleep(1);
 	}
 }

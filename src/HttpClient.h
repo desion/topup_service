@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <curl/curl.h>
 #include <string.h>
+#include "slog.h"
 #include <map>
 #include <iostream>
 #include <openssl/md5.h>
