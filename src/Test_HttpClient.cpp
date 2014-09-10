@@ -266,6 +266,18 @@ bool TEST_CONNECTION(){
 	return true;
 }
 
+bool TEST_TSC_API(){
+	GlobalConfig *gconf = GlobalConfig::Instance();
+    if(gconf == NULL || !gconf->Init("../conf/topup.ini")){
+	       exit(EXIT_FAILURE);
+    }
+	int op = 0;
+	int province = 0;
+	int ret = parse_tsc("13693555577",&op, &province, gconf->province_map);
+	printf("op:%d\tprovince:%d\n", op, province);
+	return true;
+}
+
 int main(int argc, char *argv[]){
 	/*
 	map<string, string, cmpKeyAscii> entitys;
@@ -282,25 +294,29 @@ int main(int argc, char *argv[]){
 	map<string, string>::iterator it = entitys.begin();
 	for(;it != entitys.end(); ++it){
 		printf("key:%s\tvalue:%s\n", it->first.c_str(), it->second.c_str());
-	}
-	*/
+	}*/
 	//TEST_CONNECTION();
 	//TEST_SIGN();
-	int i = 100;
+	
+	//TEST_TSC_API();
+
+	int i = 10000;
 	while(i > 0){
 		i--;
-		usleep(300);
+		usleep(10);
 		TEST_NORMAL_CHARGE(i);
 		TEST_NORMAL_CUSTOMER(i);
 	}
 	TEST_QUERY_ORDER();
-
-	void *handle = dlopen("./libcustomer.so", RTLD_LAZY);
+	void *handle = dlopen("./libchannel.so", RTLD_LAZY);
+	handle = dlopen("./libtopup.so", RTLD_LAZY);
+	handle = dlopen("./libcustomer.so", RTLD_LAZY);
 	fprintf (stderr, "%s\n", dlerror()); 
 	assert(handle != NULL);
 
 	httpclent_perform("http://127.0.0.1/tmall/pay", "", &debug, NULL);
 	//TEST_LAKEPARAM_CHARGE();
+	
 	return 0;
 }
 

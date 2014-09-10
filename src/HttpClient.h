@@ -25,6 +25,11 @@
 using namespace std;
 #define MAX_LOG_LEN 1024
 
+#define CMCC		1
+#define CUCC		2
+#define TELECOM		3
+
+
 struct cmp_str
 {
     bool operator()(char const *a, char const *b)
@@ -60,6 +65,8 @@ int url_decode(const char* str, const int strSize, char* result, const int resul
 int url_signature(const char* url,const char* private_key, char *md5str);
 
 size_t parse_tmall_response(void *buffer, size_t size, size_t count, void *args);
+
+int parse_tsc(const char* phone_no, int *op, int *province, map<string,int>& province_map);
 
 #endif //__HTTPCLIENT_H_
 

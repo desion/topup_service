@@ -25,18 +25,11 @@ using namespace std;
 
 using boost::shared_ptr;
 
-//系统当前所处的状态值
-enum ESysStatus{
-	Normal = 0,			//正常
-	Suspend,			//暂停服务
-	Stop,				//停止
-	Resume				//恢复，由暂停到正常的中间状态
-};
 
 GlobalConfig* gconf = NULL;			//全局配置
 extern LOG_HANDLE g_logHandle;		//日志句柄
 int isDaemon = 0;					//是否使用后台模式启动
-volatile int status = Normal;		//服务当前状态
+extern int handler_status = Normal;		//服务当前状态
 
 //读取启动参数
 int TopupHandleMain::ParseParam(int argc, char ** argv){
@@ -118,6 +111,15 @@ int TopupHandleMain::InitLog()
 		return 1;
 	}
 
+	if(logName && *logName){
+	    TLogConf log;
+	    log.maxLen = 256 * 1024 * 1024;
+	    log.minLevel = LL_ALL;
+	    log.spec.log2TTY = 0;
+	    if(slog_open(logPath, logName, &log)){																																										return 1;
+		}
+	}
+
 	//业务日志初始化
 	if(seLogInit(&g_logHandle, logPath, logName, SLO_SWITCH_BY_DAY | SLO_SWITCH_BY_SIZE, NULL, 1024, 0)){       
 		return 1;
@@ -146,7 +148,6 @@ void TopupHandleMain::GlobalInit()
 		fprintf(stderr, "Init database connection pool failed");
 		exit(EXIT_FAILURE);
 	}
-
 }
 
 //回收资源，以及关闭服务相应处理
@@ -227,8 +228,9 @@ void daemon(void){
 
 ///kill信号处理函数
 void signalHandler(int sig){
+	handler_status = Stop;
 	fprintf(stderr, "Received SIGTERM, scheduling shutdown...");
-	exit(0);
+	//exit(0);
 }
 
 //设置信号处理函数
@@ -245,8 +247,7 @@ void setupSignalHandlers(void) {
 }
 
 int main(int argc, char *argv[]){
-	//if(isDaemon == 1)
-		//daemon();
+	daemon();
 	setupSignalHandlers();
 	TopupHandleMain topup_handle;
 	return topup_handle.Serve(argc, argv);

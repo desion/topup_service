@@ -207,7 +207,7 @@ int main (int argc, char* argv[])
 		cerr << "can't load serviceList\n";
 		return -1;
 	}
-	for(int i = 0; i < 100; i++){
+	for(int i = 0; i < 10000; i++){
 		time_t time_now;
 		time(&time_now);
 		TEST_NORMAL_CHARGE(i, buffer);
@@ -223,7 +223,7 @@ int main (int argc, char* argv[])
 		req.checksum = string(md5str);
 		req.version = string(TOPUP_VERSION);
 		req.ip = string("127.0.0.1");
-		req.uri = string("/customer/pay");
+		req.uri = string("/tmall/pay");
 		req.itimestamp = (uint32_t)time_now;
 		string ret;
 		m_topupClient ->SendRequest(ret, req);

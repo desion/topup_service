@@ -26,7 +26,8 @@ bool httpclent_perform(const char *url, const char *params, PARSE_FUNCTION parse
 	if(curl) {
 		curl_easy_setopt(curl, CURLOPT_URL, url);
 	    /* Now specify the POST data */ 
-	    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, params);
+		if(params != NULL)
+			curl_easy_setopt(curl, CURLOPT_POSTFIELDS, params);
 
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 1000);
 
@@ -43,7 +44,7 @@ bool httpclent_perform(const char *url, const char *params, PARSE_FUNCTION parse
 		}
 		res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE , &http_code);
 	    if(res != CURLE_OK || http_code != 200){
-			fprintf(stderr, "curl_easy_perform %s fail http code: %llu\n",url, http_code);
+			fprintf(stderr, "curl_easy_perform %s fail http code: %lu\n",url, http_code);
 			ret = false;
 		}	
 				 
@@ -386,3 +387,46 @@ size_t parse_tmall_response(void *buffer, size_t size, size_t count, void *args)
 	}
 	return size * count;
 }
+size_t parse_tsc_response(void *buffer, size_t size, size_t count, void *args){
+	if(args == NULL){
+		return size * count;
+	}
+	char *data = (char*)args;
+	strncpy(data, (const char*)buffer, 1023);
+	fprintf(stderr, "%s\n", data);
+	return size * count;
+}
+
+//解析电话归属地
+int parse_tsc(const char* phone_no, int *op, int *province, map<string,int>& province_map){
+	char buf[1024] = {0};
+	char data[1024] = {0};
+	sprintf(buf, "http://api.showji.com/Locating/www.showji.c.o.m.aspx?m=%s&output=json", phone_no);
+	if(!httpclent_perform(buf, NULL, parse_tsc_response, (void*)data)){
+		return 1;
+	}
+	Json::Value root;
+    Json::Reader reader;
+    if(reader.parse(data, root)){
+		string p_str = root["Province"].asString();
+		const char *corp = root["Corp"].asString().c_str();
+		if(strstr(corp, "中国移动") != NULL){
+			*op = CMCC;
+		}else if(strstr(corp, "中国联通") != NULL){
+			*op = CUCC;
+		}else if(strstr(corp, "中国电信") != NULL){
+			*op = TELECOM;
+		}else{
+			return 1;
+		}
+		map<string, int>::iterator iter;
+		if((iter = province_map.find(p_str)) != province_map.end()){
+			*province = iter->second;
+		}else{
+			return 1;
+		}
+	}
+	return 0;
+}
+
+

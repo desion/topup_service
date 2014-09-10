@@ -78,7 +78,7 @@ class ChannelSLS : public Channel{
 		static const char* pwd;
 		map<string, string> errors;
 };
-
+///来来往往充值接口
 class ChannelLLWW : public Channel{
 	public:
 		int Charge(TopupInfo *topup_info, string &result);

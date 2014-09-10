@@ -8,6 +8,7 @@
 
 #include<iostream>
 #include <map>
+#include <stdint.h>
 using namespace std;
 
 #ifndef __GLOBALCONFIG_H__
@@ -40,6 +41,9 @@ class GlobalConfig{
 		const char* private_key;
 		const char* coopid;	
 
+		const char* province_code_path;
+		const char* tsc_path;
+
 		//手拉手
 		char *p_sls_interface;
 		char *p_sls_query_url;
@@ -63,10 +67,17 @@ class GlobalConfig{
 		int n_redis_timeout;
 
 		map<string, string> errors;
+		map<string, int> province_map;
+		map<string, uint8_t> tsc_map;
 
 		int n_charge_thread;
 		int n_query_thread;
 		int n_notify_thread;
+		
+		//检查tsc并添加新号段
+//		int check_tsc(const char* phone ,int op,int province);
+
+		pthread_rwlock_t tsc_rwlock;
 
 	private:
 		static GlobalConfig m_global_config;

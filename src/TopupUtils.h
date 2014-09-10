@@ -1,8 +1,8 @@
 /*************************************************************************
-	> File Name: TopupUtils.h
-	> Author: desionwang
-	> Mail: wdxin1322@qq.com 
-	> Created Time: Sat 08 Feb 2014 02:38:15 PM CST
+    > File Name: TopupUtils.h
+    > Author: desionwang
+    > Mail: wdxin1322@qq.com 
+    > Created Time: Sat 08 Feb 2014 02:38:15 PM CST
  ************************************************************************/
 
 #ifndef __TOPUP_UTILS_H
@@ -27,35 +27,35 @@ using namespace std;
 
 //将日志写入缓冲区
 #define TP_WRITE_LOG(info, fmt, ...) { \
-	if(info->log_len < MAX_LOG_LEN){\
-	    info->log_len += snprintf(info->log + info->log_len, MAX_LOG_LEN - info->log_len, fmt, ##__VA_ARGS__);\
-	}\
+    if(info->log_len < MAX_LOG_LEN){\
+        info->log_len += snprintf(info->log + info->log_len, MAX_LOG_LEN - info->log_len, fmt, ##__VA_ARGS__);\
+    }\
 }
 
 #define TP_WRITE_ERR(info, fmt, ...) { \
-	if(info->err_log_len < MAX_LOG_LEN){\
-	    info->err_log_len += snprintf(info->err_log + info->err_log_len, MAX_LOG_LEN - info->err_log_len, fmt, ##__VA_ARGS__);\
-	}\
+    if(info->err_log_len < MAX_LOG_LEN){\
+        info->err_log_len += snprintf(info->err_log + info->err_log_len, MAX_LOG_LEN - info->err_log_len, fmt, ##__VA_ARGS__);\
+    }\
 }
 
 //调用动态链接库方法
 #define DLLCALL(so, call, ret, ...) {\
-	    pthread_rwlock_rdlock(&so->lock);\
-	    ret = so->call(__VA_ARGS__);\
-	    pthread_rwlock_unlock(&so->lock);\
+        pthread_rwlock_rdlock(&so->lock);\
+        ret = so->call(__VA_ARGS__);\
+        pthread_rwlock_unlock(&so->lock);\
 }
 
 #define DLLCALL2(so, call, ...) {\
-	    pthread_rwlock_rdlock(&so->lock);\
-	    so->call(__VA_ARGS__);\
-	    pthread_rwlock_unlock(&so->lock);\
+        pthread_rwlock_rdlock(&so->lock);\
+        so->call(__VA_ARGS__);\
+        pthread_rwlock_unlock(&so->lock);\
 }
 
 #define CHECKNULL(var, fmt, ...) {\
-	if(var == NULL){\
-		slog_write(LL_FATAL, fmt, ##__VA_ARGS__);\
-		return false;\
-	}\
+    if(var == NULL){\
+        slog_write(LL_FATAL, fmt, ##__VA_ARGS__);\
+        return false;\
+    }\
 }
 
 #define CHARGEQUEUE "underway"
@@ -64,9 +64,9 @@ using namespace std;
 
 
 //通知状态定义
-#define NOTIFY_UNDONE 0			//未通知
-#define NOTIFY_SUCCESS 1		//已经成功通知
-#define NOTIFY_FAIL 2			//通知失败
+#define NOTIFY_UNDONE 0            //未通知
+#define NOTIFY_SUCCESS 1        //已经成功通知
+#define NOTIFY_FAIL 2            //通知失败
 
 enum RequestType{
     CHARGE = 0,
@@ -76,97 +76,106 @@ enum RequestType{
     NOTIFY
 };
 
+//系统当前所处的状态值
+enum ESysStatus{
+    Normal = 0,         //正常
+    Suspend = 1,        //暂停服务
+    Stop = 2,           //停止
+    Resume = 3          //恢复，由暂停到正常的中间状态
+};
+
 enum OrderStatus{CREATE = 0, UNDERWAY, SUCCESS, FAILED, CANCELED};
 
 typedef struct ChannelInfo{
-	int channelId;					//渠道ID
-	std::string channelName;		//渠道名称
-	std::string sname;				//渠道简称
-	float discount;					//折扣
-	std::string interfaceName;		//接口标识
-	int priority;					//优先级
-	int repeat;						//重试次数
-	std::string pid;				//代理商用产品id
+    int channelId;                  //channel id
+    std::string sname;              //channel sname
+    float discount;                 //discount of product
+    std::string interfaceName;      //interface
+    int priority;                   //priority
+    int repeat;                     //repeat times
+    std::string pid;                //product id given by channel
+    std::string private_key;        //private key given by channel
+    int query_interval;             //query order wait time
 } ChannelInfo;
 
 typedef struct QsInfo{
-	std::string coopId;				//商家编号
-    std::string tbOrderNo;			//淘宝的订单号
-	std::string coopOrderNo;		//系统生成订单号
-    std::string cardId;				//充值卡商品编号
-    int cardNum;					//充值卡数量
-    std::string customer;			//手机号码
-    double sum;						//本次充值总金额
-    std::string tbOrderSnap;		//商品信息快照
-    std::string notifyUrl;			//异同通知地址
-    std::string sign;				//签名字符串
-    std::string version;			//版本
-	std::string coopOrderStatus;	//notify状态
-	double price;					//总价，不含打折信息
-	int value;						//面值
-	int op;							//运营商
-	int province;					//省份
+    std::string coopId;             //商家编号
+    std::string tbOrderNo;          //淘宝的订单号
+    std::string coopOrderNo;        //系统生成订单号
+    std::string cardId;             //充值卡商品编号
+    int cardNum;                    //充值卡数量
+    std::string customer;           //手机号码
+    double sum;                     //本次充值总金额
+    std::string tbOrderSnap;        //商品信息快照
+    std::string notifyUrl;          //异同通知地址
+    std::string sign;               //签名字符串
+    std::string version;            //版本
+    std::string coopOrderStatus;    //notify状态
+    double price;                   //总价，不含打折信息
+    int value;                      //面值
+    int op;                         //运营商
+    int province;                   //省份
 }QsInfo;
 
 typedef struct TopupInfo{
-	QsInfo qs_info;							//请求参数相关
-	std::vector<ChannelInfo> channels;		//最优渠道
-	Connection *conn;						//数据库连接
-	char log[MAX_LOG_LEN];					//业务日志缓冲区
-	char err_log[MAX_LOG_LEN];				//错误日志缓冲区
-	int log_len;							//缓冲区位置标记
-	int err_log_len;						//缓冲区位置标记
-	uint32_t seqid;							//请求序列标记
-	struct timeval start_time;				//开始处理时间
-	OrderStatus status;
-	std::string update_time;
-	int notify;								//是否通知
-	int channelId;							//使用的渠道id
-	double channel_discount;				//使用渠道折扣
-	std::string interfaceName;				//当前使用接口标识
-	int repeat;
-	std::string channelSname;				//当前使用代理商简称
-	uint32_t create_time;					//订单创建时间
-	std::string pid;						//当前使用代理商产品id
-	uint32_t last_op_time;					//记录最后一次操作改记录时间
-	std::string userid;						//标记请求用户的身份信息，天猫用tmall
+    QsInfo qs_info;                         //请求参数相关
+    std::vector<ChannelInfo> channels;      //最优渠道
+    Connection *conn;                       //数据库连接
+    char log[MAX_LOG_LEN];                  //业务日志缓冲区
+    char err_log[MAX_LOG_LEN];              //错误日志缓冲区
+    int log_len;                            //缓冲区位置标记
+    int err_log_len;                        //缓冲区位置标记
+    uint32_t seqid;                         //请求序列标记
+    struct timeval start_time;              //开始处理时间
+    OrderStatus status;                     //当前订单状态
+    std::string update_time;                //订单更新时间
+    int notify;                             //是否通知
+    int channelId;                          //使用的渠道id
+    double channel_discount;                //使用渠道折扣
+    std::string interfaceName;              //当前使用接口标识
+    std::string channelSname;               //当前使用代理商简称
+    uint32_t create_time;                   //订单创建时间
+    //std::string pid;                        //当前使用代理商产品id
+    uint32_t last_op_time;                  //记录最后一次操作改记录时间
+    std::string userid;                     //标记请求用户的身份信息，天猫用tmall
+    std::string customer_passwd;            //充值用户使用的充值密码，tmall固定在程序中
 }TopupInfo;
 
 
 //动态库重加载指令
-#define SO_RELOAD_CMD		100
+#define SO_RELOAD_CMD        100
 //配置等重加载指令
-#define CONF_RELOAD_CMD		101
+#define CONF_RELOAD_CMD        101
 //服务进入维护状态指令
-#define SERVICE_STOP_CMD	102
+#define SERVICE_STOP_CMD    102
 //服务恢复指令
-#define SERVICE_RESUME_CMD	103
+#define SERVICE_RESUME_CMD    103
 //dump缓存数据指令
-#define DUMP_CACHE_CMD		104
+#define DUMP_CACHE_CMD        104
 
 
 //XML response状态
-#define SSUCCESS		"<coopOrderStatus>SUCCESS</coopOrderStatus>"
-#define SUNDERWAY		"<coopOrderStatus>UNDERWAY</coopOrderStatus>"
-#define SORDER_FAILED 	"<coopOrderStatus>ORDER_FAILED</coopOrderStatus>"
-#define SFAILED			"<coopOrderStatus>FAILED</coopOrderStatus>"
-#define SREQUEST_FAILED	"<coopOrderStatus>REQUEST_FAILED</coopOrderStatus>"
-#define SCANCEL			"<coopOrderStatus>CANCEL<coopOrderStatus>"
+#define SSUCCESS        "<coopOrderStatus>SUCCESS</coopOrderStatus>"
+#define SUNDERWAY        "<coopOrderStatus>UNDERWAY</coopOrderStatus>"
+#define SORDER_FAILED     "<coopOrderStatus>ORDER_FAILED</coopOrderStatus>"
+#define SFAILED            "<coopOrderStatus>FAILED</coopOrderStatus>"
+#define SREQUEST_FAILED    "<coopOrderStatus>REQUEST_FAILED</coopOrderStatus>"
+#define SCANCEL            "<coopOrderStatus>CANCEL<coopOrderStatus>"
 
 
 typedef struct err_info{
-	int code;
-	char* msg;
+    int code;
+    char* msg;
 } err_info;
 
 typedef struct SoBase{
-	void *handle;
-	pthread_rwlock_t lock;
-	char *filename;
-	int file_time;
-	int (*reload)(struct SoBase *so);
-	TopupBase* (*create)();
-	void (*destory)(TopupBase* topupBase);
+    void *handle;
+    pthread_rwlock_t lock;
+    char *filename;
+    int file_time;
+    int (*reload)(struct SoBase *so);
+    TopupBase* (*create)();
+    void (*destory)(TopupBase* topupBase);
 } SoBase;
 
 
@@ -179,29 +188,30 @@ int so_free(SoBase *so);
 //动态链接库加载函数，主要是加载相应的函数
 int so_topup_reload(SoBase *h);
 int so_customer_reload(SoBase *h);
+int so_channel_reload(SoBase *h);
 
 
 inline int split_string (char * s, const char * seperator, std::vector<char *> & field_vec)
 {
-	field_vec.clear();
-	if (s == NULL) return -1;
-	if (seperator == NULL) return -1;
+    field_vec.clear();
+    if (s == NULL) return -1;
+    if (seperator == NULL) return -1;
 
-	int sep_len = strlen(seperator);
-	char * p = s;
-	field_vec.push_back(p);
-	while ((p = strstr(p, seperator)) != NULL)
-	{
-		*p = '\0';
-		p += sep_len;
-		field_vec.push_back(p);
-	}
-	return field_vec.size();
+    int sep_len = strlen(seperator);
+    char * p = s;
+    field_vec.push_back(p);
+    while ((p = strstr(p, seperator)) != NULL)
+    {
+        *p = '\0';
+        p += sep_len;
+        field_vec.push_back(p);
+    }
+    return field_vec.size();
 }
 
 /**最优渠道选择函数**/
 inline bool ChannelRank(ChannelInfo channelA, ChannelInfo channelB){                                                                                                                                           
-	        return channelA.priority > channelB.priority;
+            return channelA.priority > channelB.priority;
 }
 
 

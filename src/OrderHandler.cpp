@@ -18,6 +18,7 @@
 using namespace boost;
 
 extern LOG_HANDLE g_logHandle; 
+extern int handler_status;
 #define INITIAL_SLEEP_TIME 100
 #define MAX_SLEEP_TIME 200000
 #define TIMEOUT_TIME 1800
@@ -35,6 +36,10 @@ void *charge(void *arg){
 	}
 	//循环出来队列数据
 	while(1){
+		if(handler_status == Stop){
+			slog_write(LL_NOTICE, "charge thread  %lu exit normally!", pthread_self());
+			break;		
+		}
 		string value;
 		//默认使用1库
 		redis->select(1);
@@ -117,6 +122,10 @@ void *query(void *arg){
 	}
 
 	while(1){
+		if(handler_status == Stop){
+			slog_write(LL_NOTICE, "query thread  %lu exit normally!", pthread_self());
+			break;		
+		}
 		string value;
 		redis->select(1);
 		if(!redis->dequeue(QUERYQUEUE, value)){
@@ -176,9 +185,9 @@ void *query(void *arg){
 					ConnectionManager *connManager = ConnectionManager::Instance();
 					Connection *conn = connManager->CreateConnection();
 					if(conn == NULL){
-						                slog_write(LL_FATAL, "create connection instance failed!");
-										                continue;
-														            }
+						slog_write(LL_FATAL, "create connection instance failed!");
+						continue;
+				    }
 					chargeBusiness->Init(conn);
 					chargeBusiness->UpdateOrderStatus(topup_info);
 					connManager->Recover(conn);
@@ -215,6 +224,10 @@ void *notify(void *arg){
 	}
 	//循环处理队列
 	while(1){
+		if(handler_status == Stop){
+			slog_write(LL_NOTICE, "notify thread  %lu exit normally!", pthread_self());
+			break;		
+		}
 		string value;
 		redis->select(1);
 		if(!redis->dequeue(NOTIFYQUEUE, value)){

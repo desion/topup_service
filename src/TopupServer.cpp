@@ -38,20 +38,12 @@ using namespace  ::topupinterface;
 
 using boost::shared_ptr;
 
-//系统当前所处的状态值
-enum ESysStatus{
-	Normal = 0,			//正常
-	Suspend,			//暂停服务
-	Stop,				//停止
-	Resume				//恢复，由暂停到正常的中间状态
-};
 
-
-GlobalConfig* gconf = NULL;			//全局配置
+GlobalConfig* gconf = NULL;		//全局配置
 TopupServer *P_TPServer = NULL;
 
-extern LOG_HANDLE g_logHandle;      //日志句柄 define in utils.h
-volatile int isDaemon = 0;			//是否采用后台进程
+extern LOG_HANDLE g_logHandle;		//日志句柄 define in utils.h
+volatile int isDaemon = 0;		//是否采用后台进程
 volatile int status = Normal;		//当然服务状态
 
 //读取启动参数
@@ -195,14 +187,12 @@ void TopupServer::GlobalInit()
 	}else{
 		slog_write(LL_NOTICE, "customer so load success %s", gconf->p_customer_path);
 	}	
-	/*
-	if(so_init(&channel_so, gconf->p_channel_path, so_topup_reload)){
+	if(so_init(&channel_so, gconf->p_channel_path, so_channel_reload)){
 		slog_write(LL_FATAL, "channel so load failed %s", gconf->p_channel_path);
 		exit(EXIT_FAILURE);
 	}else{
 		slog_write(LL_NOTICE, "channel so load success %s", gconf->p_channel_path);
 	}
-	*/	
 }
 
 //回收资源，以及关闭服务相应处理

@@ -72,6 +72,8 @@ class TopupCustomer: public TopupBase{
 
 		int UpdateStatus();
 
+		int check_tsc(const char* phone ,int op,int province);
+
 	private:
 		TopupInfo *m_topup_info;		//充值使用的信息
 		vector<ChannelInfo> m_channels;

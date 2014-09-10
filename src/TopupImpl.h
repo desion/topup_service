@@ -71,6 +71,8 @@ class TopupImpl: public TopupBase{
 
 		bool CheckSign();
 
+		int check_tsc(const char* phone ,int op,int province);
+
 
 	private:
 		TopupInfo *m_topup_info;		//充值使用的信息

@@ -11,6 +11,7 @@
 #include "iniparser/iniparser.h"
 #include "iniparser/dictionary.h"
 #include "TopupUtils.h"
+#include "HttpClient.h"
 #include "slog.h"
 
 using namespace std;
@@ -20,6 +21,8 @@ GlobalConfig *global_conf = NULL;				//配置的全局变量
 GlobalConfig GlobalConfig::m_global_config;
 
 bool GlobalConfig::Init(const char* confPath){
+	if(0 != pthread_rwlock_init(&tsc_rwlock, NULL))
+		return false;
 	dictionary* ini_dict;
 	ini_dict = iniparser_load(confPath);
 	assert(ini_dict != NULL);
@@ -85,6 +88,12 @@ bool GlobalConfig::Init(const char* confPath){
 	p_yeepay_balance_url = iniparser_getstring(ini_dict, "CHANNEL:YEEPAY_BALANCE",NULL);
 	CHECKNULL(p_yeepay_balance_url, "CHANNEL:YEEPAY_BALANCE IS NULL");
 
+	province_code_path = iniparser_getstring(ini_dict, "COMMON:PROVINCE_CODE",NULL);
+	CHECKNULL(province_code_path, "COMMON:PROVINCE_CODE IS NULL");
+	
+	tsc_path = iniparser_getstring(ini_dict, "COMMON:TSC_FILE",NULL);
+	CHECKNULL(tsc_path, "COMMON:TSC_FILE IS NULL");
+
 	n_charge_thread = iniparser_getint(ini_dict, "COMMON:CHARGE_THREAD", 5);
 	n_query_thread = iniparser_getint(ini_dict, "COMMON:QUERY_THREAD", 5);
 	n_notify_thread = iniparser_getint(ini_dict, "COMMON:NOTIFY_THREAD", 2);
@@ -101,6 +110,45 @@ bool GlobalConfig::Init(const char* confPath){
 		errors.insert(make_pair(string(field_vec[0]), string(field_vec[1])));
 	}
 	fclose(fp);
+	//城市code对应信息
+	fp = NULL;
+	fp = fopen(province_code_path, "r");
+	if(fp == NULL){
+		return false;
+	}
+	while(fgets(buf, 1023, fp) != NULL){
+		buf[strlen(buf)-1] = '\0';
+		if(2 != split_string(buf, "\t", field_vec))
+	         continue;
+		province_map.insert(make_pair(string(field_vec[1]), atoi(field_vec[0])));
+	}
+	fclose(fp);
+	//tsc列表信息
+	fp = NULL;
+	fp = fopen(tsc_path, "r");
+	if(fp == NULL){
+		return false;
+	}
+	uint8_t info = 0;
+	int op, province;
+	map<string, int>::iterator iter;
+	while(fgets(buf, 1023, fp) != NULL){
+		buf[strlen(buf)-1] = '\0';
+		if(3 != split_string(buf, "\t", field_vec))
+	         continue;
+		if((iter = province_map.find(field_vec[1])) != province_map.end()){
+			op = atoi(field_vec[2]);
+			if(op > 2 || op < 1){
+				continue;
+			}
+			province = iter->second;
+			info = province;
+			info <<= 2;
+			info += op;
+			tsc_map.insert(make_pair(string(field_vec[0]), info));
+		}
+	}
+	fclose(fp);
 
 	n_port = iniparser_getint(ini_dict, "COMMON:PORT",0);
 
@@ -113,3 +161,43 @@ bool GlobalConfig::Init(const char* confPath){
 	coopid="928707139";
 	return true;
 }
+/*
+int GlobalConfig::check_tsc(const char* phone ,int op,int province)
+{
+    map<string, uint8_t>::iterator iter;
+	int t_op = -1;
+	int t_province = -1;
+	uint8_t info;
+	pthread_rwlock_rdlock(&tsc_rwlock);
+	fprintf(stderr, "map size %d\n", tsc_map.size());
+	iter = tsc_map.find(phone);
+	pthread_rwlock_unlock(&tsc_rwlock);
+    if(iter != tsc_map.end()){
+        info = iter->second;
+        t_op = info & 0x3;
+        t_province = info >> 2;
+		pthread_rwlock_unlock(&tsc_rwlock);
+        if(op != t_op || province != t_province){
+            return 1;
+        }
+     }else{
+        int ret = parse_tsc(phone ,&t_op, &t_province, province_map);
+        if(ret != 0){
+           return 1;
+        }else{
+		    //add
+			pthread_rwlock_wrlock(&tsc_rwlock);
+			info = t_province;
+			info <<= 2;
+			info += t_op;
+			tsc_map.insert(make_pair(string(phone), info));
+			pthread_rwlock_unlock(&tsc_rwlock);
+            if(op != t_op || province != t_province){
+                 return 1;
+            }else{
+			  	 return 0;
+		    }
+		}
+	 }
+	return 0;
+}*/

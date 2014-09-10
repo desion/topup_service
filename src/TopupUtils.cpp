@@ -1,8 +1,8 @@
 /*************************************************************************
-	> File Name: TopupUtils.cpp
-	> Author: desionwang
-	> Mail: wdxin1322@qq.com 
-	> Created Time: Sat 08 Feb 2014 03:14:09 PM CST
+    > File Name: TopupUtils.cpp
+    > Author: desionwang
+    > Mail: wdxin1322@qq.com 
+    > Created Time: Sat 08 Feb 2014 03:14:09 PM CST
  ************************************************************************/
 
 #include "TopupUtils.h"
@@ -11,11 +11,11 @@
 LOG_HANDLE g_logHandle = NULL;
 
 int get_file_time(char *filename){
-	struct stat st = {0};
-	if(stat(filename, &st)){
-		return -1;
-	}
-	return (int)st.st_mtime;
+    struct stat st = {0};
+    if(stat(filename, &st)){
+        return -1;
+    }
+    return (int)st.st_mtime;
 }
 
 //so初始化
@@ -46,7 +46,7 @@ int so_check_reload(SoBase *so){
 int so_load(SoBase *so){
     so->handle = LoadLibrary(so->filename);
     if(so->handle == NULL){
-	   slog_write(LL_FATAL, "customer so load failed handle is NULL path:%s", so->filename);
+       slog_write(LL_FATAL, "customer so load failed handle is NULL path:%s", so->filename);
        return -1;
     }
     return 0;
@@ -86,13 +86,36 @@ int so_customer_reload(SoBase *so){
     }
     if(so_load(so)){
         pthread_rwlock_unlock(&so->lock);
-		slog_write(LL_FATAL, "customer so load failed where so_load");
+        slog_write(LL_FATAL, "customer so load failed where so_load");
         return -1;
     }
     so->create = (create_t)GetProcAddress(so->handle, "customer_create");
     so->destory = (destroy_t)GetProcAddress(so->handle, "customer_destroy");
     if (so->create == NULL || so->destory == NULL){
-		slog_write(LL_FATAL, "customer so load failed where so->create or so->destory");
+        slog_write(LL_FATAL, "customer so load failed where so->create or so->destory");
+        so_free(so);
+        pthread_rwlock_unlock(&so->lock);
+        return -1;
+    }
+    so->file_time = get_file_time(so->filename);
+    pthread_rwlock_unlock(&so->lock);
+    return 0;
+}
+
+int so_channel_reload(SoBase *so){
+    pthread_rwlock_wrlock(&so->lock);
+    if(so->handle != NULL){
+        so_free((SoBase*)so);
+    }
+    if(so_load(so)){
+        pthread_rwlock_unlock(&so->lock);
+        slog_write(LL_FATAL, "channel so load failed where so_load");
+        return -1;
+    }
+    so->create = (create_t)GetProcAddress(so->handle, "channel_create");
+    so->destory = (destroy_t)GetProcAddress(so->handle, "channel_destroy");
+    if (so->create == NULL || so->destory == NULL){
+        slog_write(LL_FATAL, "channel so load failed where so->create or so->destory");
         so_free(so);
         pthread_rwlock_unlock(&so->lock);
         return -1;
@@ -104,55 +127,55 @@ int so_customer_reload(SoBase *so){
 
 //根据手机号码和时间生成order no
 uint64_t encode_orderno(string phoneNo){
-	uint64_t phone_num, orderno;
-	sscanf(phoneNo.c_str(), "%lu", &phone_num);
-	uint32_t ttime = time(NULL);
-	orderno = ttime - 1392906485;
-	orderno = orderno << 36;
-	orderno += (phone_num - 10000000000);
-	return orderno;	
+    uint64_t phone_num, orderno;
+    sscanf(phoneNo.c_str(), "%lu", &phone_num);
+    uint32_t ttime = time(NULL);
+    orderno = ttime - 1392906485;
+    orderno = orderno << 36;
+    orderno += (phone_num - 10000000000);
+    return orderno;    
 }
 
 //解析order no从中得到手机号和时间戳
 void decode_orderno(const uint64_t orderno, uint64_t *phoneno, uint32_t *ttime){
-	*phoneno = (orderno & 0xFFFFFFFFF) + 10000000000;
-	*ttime = orderno >> 36;
+    *phoneno = (orderno & 0xFFFFFFFFF) + 10000000000;
+    *ttime = orderno >> 36;
 }
 
 int get_time_now(const char* format, string &time_str){
-	time_t t = time(NULL);
-	char buf[30];
-	int ret = strftime(buf, 30, format, localtime(&t));
-	time_str = buf;
-	return ret;
+    time_t t = time(NULL);
+    char buf[30];
+    int ret = strftime(buf, 30, format, localtime(&t));
+    time_str = buf;
+    return ret;
 }
 
 int get_strtime(const uint32_t ts, const char* format, string &time_str){
-	char buf[30];
-	time_t t = (time_t)ts;
-	int ret = strftime(buf, 30, format, localtime(&t));
-	time_str = buf;
-	return ret;
+    char buf[30];
+    time_t t = (time_t)ts;
+    int ret = strftime(buf, 30, format, localtime(&t));
+    time_str = buf;
+    return ret;
 }
 //将其它格式的时间转换为yyyymmddHHmmSS
 void trans_time(string &from, string &to){
-	char buf[30] = {0};
-	strcpy(buf, from.c_str());
-	char *p1 = buf;
-	char *p2 = buf;
-	char ch;
-	while(*p1){
-		if(isdigit(*p1)){
-			ch = *p1;
-			*p2 = ch;
-			p1++;
-			p2++;	
-		}else{
-			p1++;
-		}
-	}
-	*p2 = '\0';
-	to = buf;
+    char buf[30] = {0};
+    strcpy(buf, from.c_str());
+    char *p1 = buf;
+    char *p2 = buf;
+    char ch;
+    while(*p1){
+        if(isdigit(*p1)){
+            ch = *p1;
+            *p2 = ch;
+            p1++;
+            p2++;    
+        }else{
+            p1++;
+        }
+    }
+    *p2 = '\0';
+    to = buf;
 }
 
 int calc_time_span(struct timeval *start_time){                                                                                                                                                         
@@ -163,9 +186,9 @@ int calc_time_span(struct timeval *start_time){
 
 void write_err_msg(TopupInfo *topupInfo, vector<string>& errors){
     vector<string>::iterator it = errors.begin();
-	for(;it != errors.end();++it){	
-		TP_WRITE_ERR(topupInfo, "seqid:%d\t(SelectBestChannel)\t%s", topupInfo->seqid, it->c_str());
-	}
+    for(;it != errors.end();++it){    
+        TP_WRITE_ERR(topupInfo, "seqid:%d\t(SelectBestChannel)\t%s", topupInfo->seqid, it->c_str());
+    }
 }
 
 /***
@@ -183,75 +206,69 @@ int str2md5(const char* src, int len,char *md5str){
     unsigned char* tmp = (unsigned char*)malloc(len * sizeof(unsigned char));
     if(tmp == NULL)
         return 4;
-	memcpy(tmp, src, len);
-	int i;
-	MD5(tmp ,len ,md);
-	for (i = 0; i < 16; i++){
-	    sprintf(md5str + i*2,"%2.2x",md[i]);
-	}
-	free(tmp);
-	return 0;
+    memcpy(tmp, src, len);
+    int i;
+    MD5(tmp ,len ,md);
+    for (i = 0; i < 16; i++){
+        sprintf(md5str + i*2,"%2.2x",md[i]);
+    }
+    free(tmp);
+    return 0;
 }*/
 void serialize_topupinfo(TopupInfo* topup_info, string &strout){
-	if(topup_info == NULL)
-		return;
-	Json::Value root;
-	Json::Value channel_array;
-	root["coopId"] = topup_info->qs_info.coopId;						//商家编号
-	root["tbOrderNo"] = topup_info->qs_info.tbOrderNo;					//淘宝的订单号
-	root["coopOrderNo"] = topup_info->qs_info.coopOrderNo;				//系统生成订单号
-	root["cardId"] = topup_info->qs_info.cardId;						//充值卡商品编号
-	root["cardNum"] = topup_info->qs_info.cardNum;						//充值卡数量
-	root["customer"] = topup_info->qs_info.customer;					//手机号码
-	root["sum"] = topup_info->qs_info.sum;								//本次充值总金额
-	root["tbOrderSnap"] = topup_info->qs_info.tbOrderSnap;				//商品信息快照
-	root["notifyUrl"] = topup_info->qs_info.notifyUrl;					//异同通知地址
-	root["price"] = topup_info->qs_info.price;
-	root["value"] = topup_info->qs_info.value;
-	root["op"] = topup_info->qs_info.op;
-	root["province"] = topup_info->qs_info.province;
-	root["status"] = topup_info->status;
-	root["interfaceName"] = topup_info->interfaceName;
-	root["channelId"] = topup_info->channelId;
-	root["channel_discount"] = topup_info->channel_discount;
-	root["creteTime"] = (uint32_t)time(NULL);
-	root["updateTime"] = (uint32_t)time(NULL);
-	root["last_op_time"] = topup_info->last_op_time;
-	root["userid"] = topup_info->userid;
-	//strout = root.toStyledString();
-	vector<ChannelInfo>::iterator iter = topup_info->channels.begin();
-	for(; iter != topup_info->channels.end(); ++iter){
-		Json::Value channel_entity;
-		//渠道ID
-		channel_entity["channelId"] = iter->channelId;
-		//渠道名称
-		channel_entity["channelName"] = iter->channelName;
-		//渠道简称
-		channel_entity["sname"] = iter->sname;
-		//折扣
-		channel_entity["discount"] = iter->discount;
-		//接口标识
-		channel_entity["interfaceName"] = iter->interfaceName;
-		//优先级
-		channel_entity["priority"] = iter->priority;
-		//重试次数
-		channel_entity["repeat"] = iter->repeat;
-		channel_entity["pid"] = iter->pid;
-		channel_array.append(channel_entity);
-	}
-	root["channels"] = channel_array;
-	Json::FastWriter writer;
-	strout = writer.write(root);
+    if(topup_info == NULL)
+        return;
+    Json::Value root;
+    Json::Value channel_array;
+    root["coopId"] = topup_info->qs_info.coopId;                        //商家编号
+    root["tbOrderNo"] = topup_info->qs_info.tbOrderNo;                    //淘宝的订单号
+    root["coopOrderNo"] = topup_info->qs_info.coopOrderNo;                //系统生成订单号
+    root["cardId"] = topup_info->qs_info.cardId;                        //充值卡商品编号
+    root["cardNum"] = topup_info->qs_info.cardNum;                        //充值卡数量
+    root["customer"] = topup_info->qs_info.customer;                    //手机号码
+    root["sum"] = topup_info->qs_info.sum;                                //本次充值总金额
+    root["tbOrderSnap"] = topup_info->qs_info.tbOrderSnap;                //商品信息快照
+    root["notifyUrl"] = topup_info->qs_info.notifyUrl;                    //异同通知地址
+    root["price"] = topup_info->qs_info.price;
+    root["value"] = topup_info->qs_info.value;
+    root["op"] = topup_info->qs_info.op;
+    root["province"] = topup_info->qs_info.province;
+    root["status"] = topup_info->status;
+    root["interfaceName"] = topup_info->interfaceName;
+    root["channelId"] = topup_info->channelId;
+    root["channel_discount"] = topup_info->channel_discount;
+    root["creteTime"] = (uint32_t)time(NULL);
+    root["updateTime"] = (uint32_t)time(NULL);
+    root["last_op_time"] = topup_info->last_op_time;
+    root["userid"] = topup_info->userid;
+    //strout = root.toStyledString();
+    vector<ChannelInfo>::iterator iter = topup_info->channels.begin();
+    for(; iter != topup_info->channels.end(); ++iter){
+        Json::Value channel_entity;
+        channel_entity["channelId"] = iter->channelId;
+        channel_entity["sname"] = iter->sname;
+        channel_entity["discount"] = iter->discount;
+        channel_entity["interfaceName"] = iter->interfaceName;
+        channel_entity["priority"] = iter->priority;
+        channel_entity["repeat"] = iter->repeat;
+        channel_entity["pid"] = iter->pid;
+        channel_entity["private_key"] = iter->private_key;
+        channel_entity["query_interval"] = iter->query_interval;
+        channel_array.append(channel_entity);
+    }
+    root["channels"] = channel_array;
+    Json::FastWriter writer;
+    strout = writer.write(root);
 }
 
 void deserialize_topupinfo(const string& json, TopupInfo* topup_info){
-	if(topup_info == NULL)
-		return;
-	Json::Value root;
-	Json::Reader reader;
-	if(reader.parse(json, root)){
-		if(!root["coopId"].isNull())
-            topup_info->qs_info.coopId = root["coopId"].asString();							//商家编号
+    if(topup_info == NULL)
+        return;
+    Json::Value root;
+    Json::Reader reader;
+    if(reader.parse(json, root)){
+        if(!root["coopId"].isNull())
+            topup_info->qs_info.coopId = root["coopId"].asString();                            //商家编号
         if(!root["tbOrderNo"].isNull())
             topup_info->qs_info.tbOrderNo = root["tbOrderNo"].asString();                  //淘宝的订单号
         if(!root["coopOrderNo"].isNull())
@@ -259,7 +276,7 @@ void deserialize_topupinfo(const string& json, TopupInfo* topup_info){
         if(!root["cardId"].isNull())
             topup_info->qs_info.cardId = root["cardId"].asString();                        //充值卡商品编号
         if(!root["cardNum"].isNull())
-            topup_info->qs_info.cardNum = root["cardNum"].asInt();						   //充值卡数量
+            topup_info->qs_info.cardNum = root["cardNum"].asInt();                           //充值卡数量
         if(!root["customer"].isNull())
             topup_info->qs_info.customer = root["customer"].asString();                    //手机号码
         if(!root["sum"].isNull())
@@ -290,36 +307,40 @@ void deserialize_topupinfo(const string& json, TopupInfo* topup_info){
             topup_info->last_op_time = root["last_op_time"].asInt(); 
         if(!root["userid"].isNull())
             topup_info->userid = root["userid"].asString(); 
-		if(!root["channels"].isNull()){
-			Json::Value channelArray = root["channels"];
-			for(int i = 0; i < channelArray.size(); i++){
-				ChannelInfo channel_info;
-				//渠道ID
-				if(channelArray[i].isMember("channelId"))
-					channel_info.channelId = channelArray[i]["channelId"].asInt();
-				//渠道名称
-				if(channelArray[i].isMember("channelName"))
-					channel_info.channelName = channelArray[i]["channelName"].asString();
-				//渠道简称
-				if(channelArray[i].isMember("sname"))
-					channel_info.sname = channelArray[i]["sname"].asString();
-				//折扣
-				if(channelArray[i].isMember("discount"))
-					channel_info.discount = channelArray[i]["discount"].asDouble();
-				//接口标识
-				if(channelArray[i].isMember("interfaceName"))
-					channel_info.interfaceName = channelArray[i]["interfaceName"].asString();
-				//优先级
-				if(channelArray[i].isMember("priority"))
-					channel_info.priority = channelArray[i]["priority"].asInt();
-				//重试次数
-				if(channelArray[i].isMember("repeat"))
-					channel_info.repeat = channelArray[i]["repeat"].asInt();
-				if(channelArray[i].isMember("pid"))
-					channel_info.pid = channelArray[i]["pid"].asString();
+        if(!root["channels"].isNull()){
+            Json::Value channelArray = root["channels"];
+            for(int i = 0; i < channelArray.size(); i++){
+                ChannelInfo channel_info;
+                //channel id
+                if(channelArray[i].isMember("channelId"))
+                    channel_info.channelId = channelArray[i]["channelId"].asInt();
+                //channel sname
+                if(channelArray[i].isMember("sname"))
+                    channel_info.sname = channelArray[i]["sname"].asString();
+                //channel discount
+                if(channelArray[i].isMember("discount"))
+                    channel_info.discount = channelArray[i]["discount"].asDouble();
+                //channel interface
+                if(channelArray[i].isMember("interfaceName"))
+                    channel_info.interfaceName = channelArray[i]["interfaceName"].asString();
+                //channel priority
+                if(channelArray[i].isMember("priority"))
+                    channel_info.priority = channelArray[i]["priority"].asInt();
+                //repeat times
+                if(channelArray[i].isMember("repeat"))
+                    channel_info.repeat = channelArray[i]["repeat"].asInt();
+                //the product id given by channel
+                if(channelArray[i].isMember("pid"))
+                    channel_info.pid = channelArray[i]["pid"].asString();
+                //the private key given by channel
+                if(channelArray[i].isMember("private_key"))
+                    channel_info.pid = channelArray[i]["private_key"].asString();
+                //query interval
+                if(channelArray[i].isMember("query_interval"))
+                    channel_info.pid = channelArray[i]["query_interval"].asString();
 
-				topup_info->channels.push_back(channel_info);
-			}
-		}
-	}
+                topup_info->channels.push_back(channel_info);
+            }
+        }
+    }
 }

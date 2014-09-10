@@ -48,6 +48,7 @@ void TopupCustomer::Log()
 #define NO_SUCH_USER		"0105"
 #define BALANCE_FAIL		"0106"
 #define BALANCE_NOT_ENOUGH	"0107"
+#define INVALID_ORDER       "0306"
 
 //处理FCGI的请求，根据请求的URI判断如何处理
 int TopupCustomer::HandleRequest(const TopupRequest& request, string &result){
@@ -146,6 +147,9 @@ int TopupCustomer::CustomerCharge(string &response){
 		return 2;
 	}else if(check_product == 1){
 		MakeErrReplay(PRODUCT_MAIN_ERR, SORDER_FAILED, response);
+		return 3;
+	}else if(check_product == 4){
+		MakeErrReplay(INVALID_ORDER, SORDER_FAILED, response);
 		return 3;
 	}
 	//下游用户充值，需要检查余额信息
@@ -466,6 +470,11 @@ int TopupCustomer::CheckProduct(){
 		m_topup_info->qs_info.op = m_product.op;
 		m_topup_info->qs_info.province = m_product.provinceId;
 	}
+	char phone[8] = {0};
+    strncpy(phone, m_topup_info->qs_info.customer.c_str(), 7);
+    if(check_tsc(phone, m_product.op, m_product.provinceId) != 0){
+        return 4;
+    }
 	delete chargeBusiness;
 	return ret;
 }
@@ -544,6 +553,44 @@ bool TopupCustomer::CheckSign(){
 	}
 	return true;	
 }
+int TopupCustomer::check_tsc(const char* phone ,int op,int province)
+{
+    map<string, uint8_t>::iterator iter;
+	int t_op = -1;
+	int t_province = -1;
+	uint8_t info;
+	pthread_rwlock_rdlock(&(GlobalConfig::Instance()->tsc_rwlock));
+	iter = GlobalConfig::Instance()->tsc_map.find(phone);
+	pthread_rwlock_unlock(&(GlobalConfig::Instance()->tsc_rwlock));
+    if(iter != GlobalConfig::Instance()->tsc_map.end()){
+        info = iter->second;
+        t_op = info & 0x3;
+        t_province = info >> 2;
+        if(op != t_op || province != t_province){
+            return 1;
+        }
+     }else{
+        int ret = parse_tsc(phone ,&t_op, &t_province, GlobalConfig::Instance()->province_map);
+        if(ret != 0){
+           return 1;
+        }else{
+		    //add
+			pthread_rwlock_wrlock(&(GlobalConfig::Instance()->tsc_rwlock));
+			info = t_province;
+			info <<= 2;
+			info += t_op;
+			GlobalConfig::Instance()->tsc_map.insert(make_pair(string(phone), info));
+			pthread_rwlock_unlock(&(GlobalConfig::Instance()->tsc_rwlock));
+            if(op != t_op || province != t_province){
+                 return 1;
+            }else{
+			  	 return 0;
+		    }
+		}
+	 }
+	return 0;
+}
+
 
 //动态链接库调用接口，用于创建相应实例
 extern "C" TopupBase* customer_create() {
