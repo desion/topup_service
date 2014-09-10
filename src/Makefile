@@ -50,6 +50,7 @@ CUSTOMER_OBJS = TopupCustomer.o \
 
 CHANNEL_OBJS = ChannelImpl.o \
 			   ChannelSLS.o \
+			   ChannelLLWW.o \
 			   TopupUtils.o \
 			   HttpClient.o
 
@@ -76,7 +77,7 @@ LIBS = -L../lib \
 
 TEST = test_httpclient
 
-all: oracle_client topup_server topup.fcg $(TEST) $(TOPUP_SO) $(CUSTOMER_SO) $(CHANNEL_SO) $(HANDLE_EXE) thrift_test
+all: oracle_client topup_server topup.fcg $(TEST) $(TOPUP_SO) $(CUSTOMER_SO) $(CHANNEL_SO) $(HANDLE_EXE) thrift_test weixin_api.fcg
 
 
 .cpp.o:
@@ -87,15 +88,13 @@ oracle_client: oracle.o
 	$(CXX) $(CPPFLAG) $(INCS) $(LIBS) -Wl,--rpath -Wl,/data/occi/lib  -locci  -lclntsh -lnnz11 -lglog -lpthread -o $@  $<
 
 $(TOPUP_SO): $(TOPUP_OBJS)
-	$(CXX) -g -fPIC -shared -o $@ $^
-	cp $(TOPUP_SO) /data/occi/lib/
+	$(CXX) $(INCS) $(LIBS) -g -fPIC -shared -lcommon -o $@ $^
 
 $(CUSTOMER_SO): $(CUSTOMER_OBJS)
-	$(CXX) -g -fPIC -shared  -o $@ $^
-	cp $(CUSTOMER_SO) /data/occi/lib/
+	$(CXX) $(INCS) $(LIBS) -g -fPIC -shared -lcommon  -o $@ $^
 
 $(CHANNEL_SO): $(CHANNEL_OBJS)
-	$(CXX) -g -fPIC -shared -o $@ $^
+	$(CXX) $(INCS) $(LIBS) -g -fPIC -shared -lcommon -o $@ $^
 
 topup_server: $(OBJS) TopupServer.o
 	$(CXX) $(CPPFLAG) $(INCS) $(LIBS)  TopupServer.o $(OBJS) $(THRIFT_OBJS) -Wl,--rpath -Wl,/data/occi/lib \
@@ -110,6 +109,10 @@ $(HANDLE_EXE): $(HANDLE_OBJS)
 topup.fcg: $(HTTP_OBJS) TopupFcgi.o
 	$(CXX) $(CPPFLAG) $(INCS) $(LIBS)  TopupFcgi.o $(HTTP_OBJS) $(THRIFT_OBJS) \
 		-lfcgi -Wl,--rpath -Wl,/data/occi/lib -lcurl -lthrift -lthriftnb -lpthread -levent -ltinyxml -ljson_linux-gcc-4.1.2_libmt -o $@
+
+weixin_api.fcg: $(HTTP_OBJS) WeixinFcgi.o
+	$(CXX) $(CPPFLAG) $(INCS) $(LIBS) WeixinFcgi.o $(HTTP_OBJS) RedisClient.o $(THRIFT_OBJS) \
+		-lfcgi -Wl,--rpath -Wl,/data/occi/lib -lhiredis -lcurl -lthrift -lthriftnb -lpthread -levent -ltinyxml -ljson_linux-gcc-4.1.2_libmt -o $@
 
 
 test_httpclient: HttpClient.o Test_HttpClient.o

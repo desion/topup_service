@@ -1,0 +1,60 @@
+namespace cpp topupinterface
+
+struct TopupRequest{
+	1: string coopId
+	2: string orderNo
+	3: string productId
+	4: i32 cardNum
+	5: double sum
+	6: string orderSnap
+	7: string notifyUrl
+	8: string ip
+	9: string sign
+	10: string version
+	11: i32 itimestamp
+	12: string stimestamp
+	13: i32 isNotify
+	14: string passWord
+	15: map<string, string> exparams
+}
+
+struct QueryRequest{
+	1: string coopId
+	2: string orderNo
+	3: string sign
+	4: string version
+	5: string timestamp
+	6: string passWord
+	7: map<string, string> exparams
+}
+
+
+struct CancelRequest{
+	1: string coopId
+	2: string orderNo
+	3: string sign
+	4: string version
+}
+
+struct BalanceRequest{
+	1: string coopId
+	2: string sign
+	3: string passWord
+}
+
+struct NotifyRequest{
+	1: string coopId
+	2: string orderNo
+	3: string passWord
+	4: string status
+	5: string sign
+	6: map<string, string> exparams
+}
+
+service Topup{
+	string CreateOrder(1:TopupRequest request),
+	string QueryOrder(1:QueryRequest request),
+	string CancelOrder(1:CancelRequest request),
+	string QueryBalance(1:BalanceRequest request),
+	string NotifyStatus(1:NotifyRequest request)
+}

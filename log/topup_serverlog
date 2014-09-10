@@ -1,0 +1,13 @@
+===============================================
+Open process log at Mon Jul 14 10:38:26 2014
+===============================================
+NOTICE 2014-7-14 10:38:28 140223568627680# connManager user:zkcl	connManager passwd:zkcl
+NOTICE 2014-7-14 10:38:28 140223568627680# tmall so load success ./libtopup.so
+NOTICE 2014-7-14 10:38:28 140223568627680# customer so load success ./libcustomer.so
+NOTICE 2014-7-14 10:38:28 140223568627680# channel so load success ./libchannel.so
+NOTICE 2014-7-14 17:22:47 140223568627680# Received SIGTERM, scheduling shutdown...
+NOTICE 2014-7-14 17:22:47 140223568627680# global destory start...
+NOTICE 2014-7-14 17:22:47 140223568627680# close log...
+===============================================
+Close process log at Mon Jul 14 17:22:47 2014
+===============================================
